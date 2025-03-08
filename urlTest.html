@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Script Test</title>
+</head>
+<body>
+  <button onclick="loadA11y()">Load Accessibility</button>
+  <button onclick="loadUX()">Load UX</button>
+  
+  <script>
+    function loadA11y() {
+      loadScript("https://zachbatx.github.io/zFiles/load_a11y.js", function() {
+        console.log("A11y loaded:", window.kbAccessibility);
+      });
+    }
+    
+    function loadUX() {
+      loadScript("https://zachbatx.github.io/zFiles/load_ux.js", function() {
+        console.log("UX loaded:", window.kbUX);
+      });
+    }
+    
+    function loadScript(url, cb) {
+      console.log("Loading:", url);
+      var s = document.createElement("script");
+      s.src = url;
+      s.onload = cb;
+      s.onerror = function(e) {
+        console.error("Error loading script:", e);
+      };
+      document.head.appendChild(s);
+    }
+  </script>
+</body>
+</html>
