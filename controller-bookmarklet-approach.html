@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pre-prompt Generator Bookmarklet</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .bookmarklet {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #0078d4;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 15px 0;
+            cursor: pointer;
+        }
+        .instructions {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+        }
+        code {
+            background-color: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, Monaco, 'Andale Mono', monospace;
+        }
+        .config-section {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+        #controllerUrl {
+            padding: 8px;
+            width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+        }
+        button {
+            padding: 8px 12px;
+            background-color: #0078d4;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005a9e;
+        }
+        .advanced {
+            margin-top: 30px;
+            border-top: 1px solid #ddd;
+            padding-top: 20px;
+        }
+        .explanation {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-left: 4px solid #0078d4;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>Pre-prompt Generator Bookmarklet</h1>
+    
+    <div class="instructions">
+        <h2>Installation Instructions</h2>
+        <ol>
+            <li>Update the controller URL if needed (default should work)</li>
+            <li>Drag the bookmarklet below to your bookmarks bar</li>
+            <li>Click the bookmarklet on any web page to run the Pre-prompt Generator</li>
+        </ol>
+    </div>
+    
+    <div class="config-section">
+        <h2>Configuration</h2>
+        <p>Enter the URL where your controller script is hosted:</p>
+        <input type="text" id="controllerUrl" placeholder="https://zachbatx.github.io/zFiles/ppg-controller.js" value="https://zachbatx.github.io/zFiles/ppg-controller.js">
+        <button id="updateButton">Update Bookmarklet</button>
+    </div>
+    
+    <h2>Your Bookmarklet</h2>
+    <p>Drag this link to your bookmarks bar:</p>
+    
+    <a id="installLink" class="bookmarklet" draggable="true" 
+       aria-label="Pre-prompt Generator" 
+       onclick="return false;" rel="bookmark" 
+       href="javascript:(function(){var c='https://zachbatx.github.io/zFiles/ppg-controller.js';var s=document.createElement('script');s.src=c+'?v='+Math.random();document.body.appendChild(s);var t=setTimeout(function(){if(typeof PPGControllerLoaded==='undefined')alert('Loading failed. This page may have restrictions that prevent the Pre-prompt Generator from loading.')},3000);window.PPGControllerLoaded=function(){clearTimeout(t)}})();">
+        Pre-prompt Generator
+    </a>
+    
+    <div class="explanation">
+        <h3>How This Works</h3>
+        <p>This bookmarklet uses a controller architecture:</p>
+        <ol>
+            <li>The bookmarklet itself is minimal - it just loads the controller script</li>
+            <li>The controller script (which you can update anytime) handles all the complex loading logic</li>
+            <li>Your knowledge base content can be updated independently</li>
+        </ol>
+        <p>This approach separates concerns:</p>
+        <ul>
+            <li>Users only install the bookmarklet once</li>
+            <li>You can update the controller script to improve loading methods</li>
+            <li>You can modify your knowledge base content without requiring users to reinstall</li>
+        </ul>
+    </div>
+    
+    <div class="advanced">
+        <h2>Developer Information</h2>
+        <h3>Controller Script Template</h3>
+        <p>Here's a template for your controller script (ppg-controller.js):</p>
+        <pre><code>// Pre-prompt Generator Controller Script
+(function() {
+    // Signal that controller loaded successfully
+    if (window.PPGControllerLoaded) window.PPGControllerLoaded();
+    
+    // URLs to knowledge base files
+    var kbURLs = {
+        accessibility: "https://zachbatx.github.io/zFiles/load_a11y.js",
+        ux: "https://zachbatx.github.io/zFiles/load_ux.js"
+    };
+    
+    // Selected knowledge base
+    var currentKB = null;
+    
+    // Attempt multiple loading methods for knowledge base files
+    function loadKnowledgeBase(type, successCallback, errorCallback) {
+        var url = kbURLs[type];
+        
+        // Try various loading methods here
+        // This is where you put all your smart loading techniques
+        
+        // Example of one loading method:
+        var script = document.createElement('script');
+        script.src = url;
+        script.onload = function() {
+            if ((type === 'accessibility' && window.kbAccessibility) ||
+                (type === 'ux' && window.kbUX)) {
+                successCallback();
+            } else {
+                errorCallback('Script loaded but objects not defined');
+            }
+        };
+        script.onerror = function() {
+            errorCallback('Failed to load script');
+        };
+        document.head.appendChild(script);
+    }
+    
+    // Create UI and handle user interactions
+    function createPrePromptGenerator() {
+        // Create panel
+        var panel = document.createElement('div');
+        panel.style.cssText = "position:fixed;top:20px;right:20px;padding:15px;border-radius:5px;box-shadow:0 0 10px rgba(0,0,0,0.3);z-index:10000;width:300px;font-family:Arial,sans-serif;background-color:white;";
+        
+        // Add HTML content
+        panel.innerHTML = `
+            <h2 style="margin:0 0 10px 0;font-size:16px">Pre-prompt Generator</h2>
+            <div id="load-status" style="margin-bottom:10px;padding:5px;background:#f0f0f0;border-radius:3px;font-size:12px;color:orange;">Ready to load data...</div>
+            <!-- Rest of your UI elements -->
+        `;
+        
+        // Add event handlers
+        // ... 
+        
+        // Append to body
+        document.body.appendChild(panel);
+    }
+    
+    // Initialize
+    createPrePromptGenerator();
+})();
+</code></pre>
+        
+        <h3>Updating Your Setup</h3>
+        <p>When you want to update:</p>
+        <ul>
+            <li><strong>To change loading methods:</strong> Update the controller script</li>
+            <li><strong>To update content:</strong> Update your knowledge base files</li>
+            <li><strong>Only in extreme cases:</strong> Users reinstall the bookmarklet</li>
+        </ul>
+    </div>
+    
+    <script>
+        document.getElementById('updateButton').addEventListener('click', function() {
+            var controllerUrl = document.getElementById('controllerUrl').value;
+            
+            // Remove trailing slash if present
+            if (controllerUrl.endsWith('/')) {
+                controllerUrl = controllerUrl.slice(0, -1);
+            }
+            
+            var bookmarkletCode = "javascript:(function(){var c='" + controllerUrl + "';var s=document.createElement('script');s.src=c+'?v='+Math.random();document.body.appendChild(s);var t=setTimeout(function(){if(typeof PPGControllerLoaded==='undefined')alert('Loading failed. This page may have restrictions that prevent the Pre-prompt Generator from loading.')},3000);window.PPGControllerLoaded=function(){clearTimeout(t)}})();";
+            
+            document.getElementById('installLink').href = bookmarkletCode;
+            alert('Bookmarklet updated with controller: ' + controllerUrl);
+        });
+    </script>
+</body>
+</html>
