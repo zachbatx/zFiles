@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Script Loading Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .test-section {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 15px;
+      margin-bottom: 20px;
+      background-color: #f9f9f9;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .pending {
+      background-color: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeeba;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    pre {
+      background-color: #f0f0f0;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    #network-log {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .method-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .content-display {
+      margin-top: 10px;
+      border: 1px solid #ddd;
+      padding: 10px;
+      background-color: white;
+    }
+    .url-input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    .input-group {
+      margin-bottom: 15px;
+    }
+    .input-label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    .object-name-input {
+      width: 150px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-left: 10px;
+    }
+    .test-controls {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .preset-btn {
+      background-color: #6c757d;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Script Loading Test Page</h1>
+  <p>This page tests different methods of loading external JavaScript files and provides detailed feedback.</p>
+  
+  <div class="test-section">
+    <h2>URL Configuration</h2>
+    <div class="input-group">
+      <label class="input-label" for="url-a11y">Script URL 1:</label>
+      <input type="text" id="url-a11y" class="url-input" value="https://zachbatx.github.io/zFiles/load_a11y.js" placeholder="Enter script URL">
+      <div class="test-controls">
+        <label>Expected global object name:</label>
+        <input type="text" id="object-name-a11y" class="object-name-input" value="kbAccessibility">
+        <button class="preset-btn" onclick="setUrl('url-a11y', 'https://zachbatx.github.io/zFiles/load_a11y.js')">Reset to Default</button>
+      </div>
+    </div>
+    <div class="input-group">
+      <label class="input-label" for="url-ux">Script URL 2:</label>
+      <input type="text" id="url-ux" class="url-input" value="https://zachbatx.github.io/zFiles/load_ux.js" placeholder="Enter script URL">
+      <div class="test-controls">
+        <label>Expected global object name:</label>
+        <input type="text" id="object-name-ux" class="object-name-input" value="kbUX">
+        <button class="preset-btn" onclick="setUrl('url-ux', 'https://zachbatx.github.io/zFiles/load_ux.js')">Reset to Default</button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="test-section">
+    <h2>Method 1: Basic Script Loading</h2>
+    <div class="method-title">Direct createElement and append method:</div>
+    <button onclick="loadScriptBasic(getUrl('url-a11y'), 'status-basic-a11y', getObjectName('object-name-a11y'))">Load Script 1</button>
+    <button onclick="loadScriptBasic(getUrl('url-ux'), 'status-basic-ux', getObjectName('object-name-ux'))">Load Script 2</button>
+    <div id="status-basic-a11y" class="status pending">Script 1: Ready to test</div>
+    <div id="status-basic-ux" class="status pending">Script 2: Ready to test</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Method 2: Fetch API</h2>
+    <div class="method-title">Using fetch to get script content and then execute:</div>
+    <button onclick="loadScriptFetch(getUrl('url-a11y'), 'status-fetch-a11y', getObjectName('object-name-a11y'))">Fetch Script 1</button>
+    <button onclick="loadScriptFetch(getUrl('url-ux'), 'status-fetch-ux', getObjectName('object-name-ux'))">Fetch Script 2</button>
+    <div id="status-fetch-a11y" class="status pending">Script 1: Ready to test</div>
+    <div id="status-fetch-ux" class="status pending">Script 2: Ready to test</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Method 3: XHR Request</h2>
+    <div class="method-title">Using XMLHttpRequest to load script:</div>
+    <button onclick="loadScriptXHR(getUrl('url-a11y'), 'status-xhr-a11y', getObjectName('object-name-a11y'))">XHR Script 1</button>
+    <button onclick="loadScriptXHR(getUrl('url-ux'), 'status-xhr-ux', getObjectName('object-name-ux'))">XHR Script 2</button>
+    <div id="status-xhr-a11y" class="status pending">Script 1: Ready to test</div>
+    <div id="status-xhr-ux" class="status pending">Script 2: Ready to test</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Method 4: Dynamic Import</h2>
+    <div class="method-title">Using dynamic import() (ES6+):</div>
+    <button onclick="loadScriptImport(getUrl('url-a11y'), 'status-import-a11y', getObjectName('object-name-a11y'))">Import Script 1</button>
+    <button onclick="loadScriptImport(getUrl('url-ux'), 'status-import-ux', getObjectName('object-name-ux'))">Import Script 2</button>
+    <div id="status-import-a11y" class="status pending">Script 1: Ready to test</div>
+    <div id="status-import-ux" class="status pending">Script 2: Ready to test</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Content Verification</h2>
+    <p>Display content from loaded scripts to verify they're working correctly:</p>
+    <button onclick="displayContent(getObjectName('object-name-a11y'))">Show Script 1 Content</button>
+    <button onclick="displayContent(getObjectName('object-name-ux'))">Show Script 2 Content</button>
+    <div id="content-display" class="content-display">Content will appear here...</div>
+  </div>
+
+  <div class="test-section">
+    <h2>Network Activity Log</h2>
+    <button onclick="clearNetworkLog()">Clear Log</button>
+    <pre id="network-log">Network activity will be logged here...</pre>
+  </div>
+
+  <script>
+    // Utility functions
+    function getUrl(elementId) {
+      return document.getElementById(elementId).value.trim();
+    }
+    
+    function getObjectName(elementId) {
+      return document.getElementById(elementId).value.trim();
+    }
+    
+    function setUrl(elementId, url) {
+      document.getElementById(elementId).value = url;
+    }
+    
+    function updateStatus(elementId, isSuccess, message) {
+      const statusEl = document.getElementById(elementId);
+      statusEl.textContent = message;
+      statusEl.className = `status ${isSuccess ? 'success' : 'error'}`;
+    }
+
+    function logNetwork(message) {
+      const logEl = document.getElementById('network-log');
+      const timestamp = new Date().toLocaleTimeString();
+      logEl.textContent = `[${timestamp}] ${message}\n${logEl.textContent}`;
+    }
+
+    function clearNetworkLog() {
+      document.getElementById('network-log').textContent = 'Network log cleared.';
+    }
+
+    function checkObjectExists(objectName) {
+      return typeof window[objectName] !== 'undefined';
+    }
+
+    // Method 1: Basic Script Loading
+    function loadScriptBasic(url, statusId, objectName) {
+      if (!url) {
+        updateStatus(statusId, false, '✗ URL is empty. Please enter a URL to test.');
+        return;
+      }
+      
+      const statusEl = document.getElementById(statusId);
+      statusEl.textContent = 'Loading...';
+      statusEl.className = 'status pending';
+      
+      logNetwork(`Basic script loading: ${url}`);
+      
+      const script = document.createElement('script');
+      script.src = url;
+      
+      script.onload = function() {
+        logNetwork(`✓ Basic script loaded: ${url}`);
+        
+        // Check if objects were created
+        if (checkObjectExists(objectName)) {
+          updateStatus(statusId, true, `✓ Successfully loaded. ${objectName} is available.`);
+        } else {
+          updateStatus(statusId, false, `✗ Script loaded but ${objectName} is not defined.`);
+        }
+      };
+      
+      script.onerror = function(e) {
+        logNetwork(`✗ Basic script error: ${url}`);
+        updateStatus(statusId, false, `✗ Failed to load script. Error: ${e.type}`);
+      };
+      
+      document.head.appendChild(script);
+    }
+
+    // Method 2: Fetch API
+    function loadScriptFetch(url, statusId, objectName) {
+      if (!url) {
+        updateStatus(statusId, false, '✗ URL is empty. Please enter a URL to test.');
+        return;
+      }
+      
+      const statusEl = document.getElementById(statusId);
+      statusEl.textContent = 'Fetching...';
+      statusEl.className = 'status pending';
+      
+      logNetwork(`Fetch request: ${url}`);
+      
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`Network response was not ok: ${response.status}`);
+          }
+          logNetwork(`✓ Fetch successful: ${url}`);
+          return response.text();
+        })
+        .then(code => {
+          logNetwork(`Evaluating script content...`);
+          
+          // Create a new script element
+          const script = document.createElement('script');
+          script.textContent = code;
+          document.head.appendChild(script);
+          
+          // Check if objects were created
+          if (checkObjectExists(objectName)) {
+            updateStatus(statusId, true, `✓ Successfully fetched and evaluated. ${objectName} is available.`);
+          } else {
+            updateStatus(statusId, false, `✗ Script fetched but ${objectName} is not defined.`);
+          }
+        })
+        .catch(error => {
+          logNetwork(`✗ Fetch error: ${error.message}`);
+          updateStatus(statusId, false, `✗ Failed to fetch script. Error: ${error.message}`);
+        });
+    }
+
+    // Method 3: XHR Request
+    function loadScriptXHR(url, statusId, objectName) {
+      if (!url) {
+        updateStatus(statusId, false, '✗ URL is empty. Please enter a URL to test.');
+        return;
+      }
+      
+      const statusEl = document.getElementById(statusId);
+      statusEl.textContent = 'Loading via XHR...';
+      statusEl.className = 'status pending';
+      
+      logNetwork(`XHR request: ${url}`);
+      
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      
+      xhr.onload = function() {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          logNetwork(`✓ XHR successful: ${url}`);
+          
+          // Create a new script element
+          const script = document.createElement('script');
+          script.textContent = xhr.responseText;
+          document.head.appendChild(script);
+          
+          // Check if objects were created
+          if (checkObjectExists(objectName)) {
+            updateStatus(statusId, true, `✓ Successfully loaded via XHR. ${objectName} is available.`);
+          } else {
+            updateStatus(statusId, false, `✗ Script loaded via XHR but ${objectName} is not defined.`);
+          }
+        } else {
+          logNetwork(`✗ XHR error: ${xhr.status} ${xhr.statusText}`);
+          updateStatus(statusId, false, `✗ Failed to load script via XHR. Status: ${xhr.status}`);
+        }
+      };
+      
+      xhr.onerror = function() {
+        logNetwork(`✗ XHR network error`);
+        updateStatus(statusId, false, '✗ Network error occurred during XHR request.');
+      };
+      
+      xhr.send();
+    }
+
+    // Method 4: Dynamic Import (Note: might not work with cross-origin restrictions)
+    function loadScriptImport(url, statusId, objectName) {
+      if (!url) {
+        updateStatus(statusId, false, '✗ URL is empty. Please enter a URL to test.');
+        return;
+      }
+      
+      const statusEl = document.getElementById(statusId);
+      statusEl.textContent = 'Attempting import...';
+      statusEl.className = 'status pending';
+      
+      logNetwork(`Dynamic import: ${url}`);
+      
+      try {
+        import(url)
+          .then(module => {
+            logNetwork(`✓ Import successful: ${url}`);
+            
+            // Check if objects were created
+            if (checkObjectExists(objectName)) {
+              updateStatus(statusId, true, `✓ Successfully imported. ${objectName} is available.`);
+            } else {
+              updateStatus(statusId, false, `✗ Script imported but ${objectName} is not defined.`);
+            }
+          })
+          .catch(error => {
+            logNetwork(`✗ Import error: ${error.message}`);
+            updateStatus(statusId, false, `✗ Failed to import script. Error: ${error.message}`);
+          });
+      } catch (error) {
+        logNetwork(`✗ Import syntax error: ${error.message}`);
+        updateStatus(statusId, false, `✗ Import syntax not supported or other error: ${error.message}`);
+      }
+    }
+
+    // Content display function
+    function displayContent(objectName) {
+      const displayEl = document.getElementById('content-display');
+      
+      if (checkObjectExists(objectName)) {
+        try {
+          const obj = window[objectName];
+          let content = `
+            <h3>${objectName} Content</h3>
+            <p><strong>Type:</strong> ${typeof obj}</p>
+          `;
+          
+          if (typeof obj === 'object') {
+            content += `<p><strong>Object Properties:</strong> ${Object.keys(obj).join(', ')}</p>`;
+            
+            // If it has a name property, display it
+            if (obj.name) {
+              content += `<p><strong>Name:</strong> ${obj.name}</p>`;
+            }
+            
+            // If it has features, display them
+            if (obj.features) {
+              content += `<p><strong>Features:</strong> ${Object.keys(obj.features).join(', ')}</p>`;
+              
+              // Display a sample feature if available
+              const sampleFeatureKey = Object.keys(obj.features)[0];
+              if (sampleFeatureKey && obj.features[sampleFeatureKey]) {
+                const feature = obj.features[sampleFeatureKey];
+                content += `<p><strong>Sample Feature (${sampleFeatureKey}):</strong> ${feature.title || 'No title'}</p>`;
+                
+                // If it has considerations, display them
+                if (feature.considerations && Array.isArray(feature.considerations)) {
+                  content += `<p><strong>Sample Considerations:</strong></p><ul>`;
+                  feature.considerations.slice(0, 5).forEach(c => {
+                    content += `<li>${c}</li>`;
+                  });
+                  if (feature.considerations.length > 5) {
+                    content += `<li>... and ${feature.considerations.length - 5} more</li>`;
+                  }
+                  content += `</ul>`;
+                }
+              }
+            }
+            
+            // Add a JSON representation
+            content += `<p><strong>Full JSON:</strong></p><pre>${JSON.stringify(obj, null, 2)}</pre>`;
+          } else {
+            content += `<p><strong>Value:</strong> ${String(obj)}</p>`;
+          }
+          
+          displayEl.innerHTML = content;
+        } catch (error) {
+          displayEl.innerHTML = `<p class="error">Error accessing ${objectName}: ${error.message}</p>`;
+        }
+      } else {
+        displayEl.innerHTML = `<p class="error">${objectName} object is not available. Try loading the script first.</p>`;
+      }
+    }
+  </script>
+</body>
+</html>
