@@ -1,0 +1,16 @@
+{
+    "name": "Space Invaders POC",
+    "short_name": "Invaders POC",
+    "start_url": "/",
+    "display": "fullscreen",
+    "orientation": "landscape",
+    "background_color": "#000000",
+    "theme_color": "#000000",
+    "icons": [
+        {
+            "src": "icon-192x192.png", <!-- Replace with your icon -->
+            "sizes": "192x192",
+            "type": "image/png"
+        }
+    ]
+}

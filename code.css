@@ -1,0 +1,12 @@
+body {
+    margin: 0;
+    overflow: hidden; /* Prevent scrollbars */
+    background-color: #000; /* Black background for space feel */
+}
+
+canvas {
+    display: block; /* Prevent scrollbar in some browsers */
+    background-color: #000; /* Canvas background also black */
+    width: 100vw; /* Make canvas take full viewport width */
+    height: 100vh; /* Make canvas take full viewport height */
+}
