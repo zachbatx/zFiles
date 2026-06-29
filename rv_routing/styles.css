@@ -1,0 +1,130 @@
+:root {
+  --bg: #1f2428;
+  --panel: #2b3238;
+  --panel-2: #343c44;
+  --accent: #3a7d44;
+  --accent-2: #4e9e5b;
+  --danger: #b3503f;
+  --text: #e7ecef;
+  --muted: #97a3ab;
+  --border: #3d464e;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+.hidden { display: none !important; }
+
+/* Gate */
+.gate {
+  position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle at 50% 30%, #2b3238, #181c1f);
+  padding: 20px;
+}
+.gate-card {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  padding: 28px; max-width: 460px; width: 100%;
+}
+.gate-card h1 { margin: 0 0 8px; }
+.gate-card p { color: var(--muted); line-height: 1.5; }
+.gate-card input[type=text] {
+  width: 100%; padding: 10px 12px; margin: 8px 0; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--panel-2); color: var(--text); font-size: 14px;
+}
+.help { margin-top: 14px; color: var(--muted); font-size: 13px; }
+.help summary { cursor: pointer; }
+.help a { color: var(--accent-2); }
+
+/* Layout */
+.app { display: flex; height: 100vh; }
+.sidebar {
+  width: 360px; min-width: 360px; height: 100%; overflow-y: auto;
+  background: var(--panel); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+}
+.sidebar-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px; border-bottom: 1px solid var(--border);
+}
+.sidebar-head h1 { font-size: 17px; margin: 0; }
+.panel { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+.panel.grow { flex: 1; }
+.panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 10px; }
+.map-wrap { flex: 1; position: relative; }
+#map { width: 100%; height: 100%; }
+
+/* Controls */
+label { display: flex; flex-direction: column; font-size: 12px; color: var(--muted); gap: 4px; }
+input, select {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 8px; font-size: 13px;
+}
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.row { display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+.full { width: 100%; }
+.grow { flex: 1; }
+.grow-input { flex: 1; }
+.checkbox { flex-direction: row; align-items: center; gap: 6px; color: var(--text); }
+.checkbox input { width: auto; }
+.muted { color: var(--muted); font-weight: normal; font-size: 11px; }
+
+/* Buttons */
+.btn {
+  background: var(--panel-2); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px; cursor: pointer; font-size: 13px;
+}
+.btn:hover { background: #3d454d; }
+.btn.primary { background: var(--accent); border-color: var(--accent); width: 100%; padding: 10px; }
+.btn.primary:hover { background: var(--accent-2); }
+.btn.danger { color: #e8b0a6; }
+.btn.small { flex: 1; font-size: 12px; padding: 6px; }
+.link-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 12px; }
+.link-btn:hover { color: var(--text); }
+
+/* Itinerary */
+.itinerary { list-style: none; margin: 0; padding: 0; }
+.itin-item {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 10px; margin-bottom: 8px;
+}
+.itin-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.itin-name { font-weight: 600; font-size: 14px; }
+.itin-type { font-size: 11px; color: var(--muted); }
+.itin-date { margin-top: 6px; width: 100%; }
+.itin-actions { display: flex; gap: 4px; margin-top: 6px; }
+.itin-actions button {
+  background: none; border: 1px solid var(--border); color: var(--muted);
+  border-radius: 4px; cursor: pointer; font-size: 11px; padding: 3px 6px;
+}
+.itin-actions button:hover { color: var(--text); }
+.leg-info {
+  margin: 6px 0 0; padding: 6px 8px; border-left: 3px solid var(--accent);
+  font-size: 12px; color: var(--muted); background: #262d33; border-radius: 0 6px 6px 0;
+}
+.leg-info.warn { border-left-color: var(--danger); color: #e8b0a6; }
+.leg-info b { color: var(--text); }
+
+/* Library */
+.library { list-style: none; margin: 0; padding: 0; max-height: 320px; overflow-y: auto; }
+.lib-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+  padding: 7px 8px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+.lib-item:hover { background: var(--panel-2); }
+.lib-item .meta { color: var(--muted); font-size: 11px; }
+.lib-add { background: var(--accent); border: none; color: #fff; border-radius: 4px; cursor: pointer; padding: 2px 8px; font-size: 14px; }
+
+/* Map banner */
+.leg-banner {
+  position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+  background: rgba(20,24,27,.92); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; font-size: 13px; color: var(--text);
+}
+
+@media print {
+  .sidebar, .leg-banner { display: none !important; }
+  body, .app { display: block; height: auto; }
+}

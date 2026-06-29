@@ -1,0 +1,282 @@
+[
+  {
+    "name": "Eureka Springs",
+    "list": "florida",
+    "order": 1,
+    "type": "Arkansas",
+    "address_hint": ""
+  },
+  {
+    "name": "Escalante Petrified Forest State Park",
+    "list": "florida",
+    "order": 2,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Jonathan Dickinson State Park River Campground",
+    "list": "florida",
+    "order": 3,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Sun Outdoors New Orleans North Shore",
+    "list": "florida",
+    "order": 4,
+    "type": "RV park",
+    "address_hint": ""
+  },
+  {
+    "name": "Sam Houston Jones State Park",
+    "list": "florida",
+    "order": 5,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Fort De Soto Park",
+    "list": "florida",
+    "order": 6,
+    "type": "Park",
+    "address_hint": ""
+  },
+  {
+    "name": "Anastasia State Park",
+    "list": "florida",
+    "order": 7,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Henderson Beach State Park",
+    "list": "florida",
+    "order": 8,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "White Oak Park",
+    "list": "florida",
+    "order": 9,
+    "type": "Park",
+    "address_hint": ""
+  },
+  {
+    "name": "Bay Palms RV Resort",
+    "list": "florida",
+    "order": 10,
+    "type": "RV park",
+    "address_hint": ""
+  },
+  {
+    "name": "St. Augustine RV Resort",
+    "list": "florida",
+    "order": 11,
+    "type": "RV park",
+    "address_hint": ""
+  },
+  {
+    "name": "Hickory Point RV Park",
+    "list": "florida",
+    "order": 12,
+    "type": "RV park",
+    "address_hint": ""
+  },
+  {
+    "name": "Trimble Park",
+    "list": "florida",
+    "order": 13,
+    "type": "Park",
+    "address_hint": ""
+  },
+  {
+    "name": "Acadiana Park Campground",
+    "list": "florida",
+    "order": 14,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Davis Roadside Park",
+    "list": "florida",
+    "order": 15,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Grand Isle State Park",
+    "list": "florida",
+    "order": 16,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Wekiwa Springs State Park Campground",
+    "list": "florida",
+    "order": 17,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Bill Frederick Park",
+    "list": "florida",
+    "order": 18,
+    "type": "Park",
+    "address_hint": ""
+  },
+  {
+    "name": "West Palm Beach / Lion Country Safari KOA Journey",
+    "list": "florida",
+    "order": 19,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "T.Y. (Topeekeegee Yugnee) Park",
+    "list": "florida",
+    "order": 20,
+    "type": "Park",
+    "address_hint": ""
+  },
+  {
+    "name": "Matterhorn Campground",
+    "list": "west",
+    "order": 1,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Navajo State Park",
+    "list": "west",
+    "order": 2,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Pine Point Campground",
+    "list": "west",
+    "order": 3,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Echo Basin Cabin and RV Resort",
+    "list": "west",
+    "order": 4,
+    "type": "2-star hotel",
+    "address_hint": ""
+  },
+  {
+    "name": "Pi\u00f1on Flats Campground",
+    "list": "west",
+    "order": 5,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Dowdy Lake Campground",
+    "list": "west",
+    "order": 6,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Sunset Point Campground",
+    "list": "west",
+    "order": 7,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Stillwater Campground",
+    "list": "west",
+    "order": 8,
+    "type": "8590 US-34",
+    "address_hint": "Granby, CO 80446"
+  },
+  {
+    "name": "Green Ridge Campground",
+    "list": "west",
+    "order": 9,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Carpios Ridge Campground",
+    "list": "west",
+    "order": 10,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Hecla Junction Campground",
+    "list": "west",
+    "order": 11,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Goosenecks State Park",
+    "list": "west",
+    "order": 12,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Eureka Springs",
+    "list": "west",
+    "order": 13,
+    "type": "Arkansas",
+    "address_hint": ""
+  },
+  {
+    "name": "Escalante Petrified Forest State Park",
+    "list": "west",
+    "order": 14,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Crater Lake National Park",
+    "list": "west",
+    "order": 15,
+    "type": "National park",
+    "address_hint": ""
+  },
+  {
+    "name": "Palo Duro Canyon State Park",
+    "list": "west",
+    "order": 16,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Pine Mountain Observatory",
+    "list": "west",
+    "order": 17,
+    "type": "Observatory",
+    "address_hint": ""
+  },
+  {
+    "name": "Lost Dutchman State Park",
+    "list": "west",
+    "order": 18,
+    "type": "State park",
+    "address_hint": ""
+  },
+  {
+    "name": "Kebler Corner",
+    "list": "west",
+    "order": 19,
+    "type": "Campground",
+    "address_hint": ""
+  },
+  {
+    "name": "Paonia State Park",
+    "list": "west",
+    "order": 20,
+    "type": "Park",
+    "address_hint": ""
+  }
+]

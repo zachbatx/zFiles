@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RV Trip Planner</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- API key gate -->
+  <div id="key-gate" class="gate hidden">
+    <div class="gate-card">
+      <h1>RV Trip Planner</h1>
+      <p>Paste your <strong>Google Maps API key</strong> to load the map. It is stored only in this browser (localStorage) and never sent anywhere except Google.</p>
+      <input id="key-input" type="text" placeholder="AIza..." autocomplete="off" spellcheck="false" />
+      <button id="key-save" class="btn primary">Load map</button>
+      <details class="help">
+        <summary>How do I get a key?</summary>
+        <ol>
+          <li>Go to <a href="https://console.cloud.google.com/" target="_blank" rel="noopener">Google Cloud Console</a> and create a project.</li>
+          <li>Enable these APIs: <em>Maps JavaScript API</em>, <em>Directions API</em>, <em>Places API</em>, <em>Geocoding API</em>.</li>
+          <li>Create an API key under <em>Credentials</em>. For personal use you can restrict it to your own referrer later.</li>
+          <li>Google gives a generous monthly free tier; personal planning rarely exceeds it.</li>
+        </ol>
+      </details>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <header class="sidebar-head">
+        <h1>RV Trip Planner</h1>
+        <button id="change-key" class="link-btn" title="Change API key">key</button>
+      </header>
+
+      <!-- Rig profile -->
+      <section class="panel">
+        <h2>Rig profile</h2>
+        <div class="grid2">
+          <label>MPG<input id="rig-mpg" type="number" min="1" step="0.5" value="9" /></label>
+          <label>Tank (gal)<input id="rig-tank" type="number" min="1" step="1" value="55" /></label>
+          <label>Fuel $/gal<input id="fuel-price" type="number" min="0" step="0.01" value="3.75" /></label>
+          <label>Reserve %<input id="fuel-reserve" type="number" min="0" max="50" step="5" value="20" /></label>
+        </div>
+        <div class="grid2">
+          <label>Max mi/day<input id="max-day-mi" type="number" min="50" step="10" value="330" /></label>
+          <label class="checkbox"><input id="rule-330" type="checkbox" checked /> 330 rule</label>
+        </div>
+      </section>
+
+      <!-- Trip selector -->
+      <section class="panel">
+        <h2>Trips</h2>
+        <div class="row">
+          <select id="trip-select"></select>
+          <button id="trip-new" class="btn" title="New trip">+</button>
+          <button id="trip-del" class="btn danger" title="Delete trip">×</button>
+        </div>
+        <input id="trip-name" class="full" type="text" placeholder="Trip name" />
+        <div class="row">
+          <button id="trip-export" class="btn small">Export</button>
+          <button id="trip-import" class="btn small">Import</button>
+          <button id="trip-print" class="btn small">Print itinerary</button>
+        </div>
+        <input id="import-file" type="file" accept="application/json" class="hidden" />
+      </section>
+
+      <!-- Itinerary -->
+      <section class="panel grow">
+        <h2>Itinerary <span id="trip-totals" class="muted"></span></h2>
+        <ol id="itinerary" class="itinerary"></ol>
+      </section>
+
+      <!-- Campground library -->
+      <section class="panel">
+        <h2>Campground library</h2>
+        <div class="row">
+          <select id="list-filter">
+            <option value="all">All lists</option>
+            <option value="florida">Florida route</option>
+            <option value="west">West parks</option>
+          </select>
+          <input id="lib-search" class="grow-input" type="text" placeholder="search…" />
+        </div>
+        <ul id="library" class="library"></ul>
+      </section>
+    </aside>
+
+    <main class="map-wrap">
+      <div id="map"></div>
+      <div id="leg-banner" class="leg-banner hidden"></div>
+    </main>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
