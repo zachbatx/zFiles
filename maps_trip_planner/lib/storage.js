@@ -123,6 +123,16 @@ export async function deleteTrip(id) {
   return trips;
 }
 
+// Patches a single stop in a trip (name, date, time, notes, addressHint, …).
+export async function updateStopInTrip(tripId, index, patch) {
+  const trips = await getTrips();
+  const trip = trips.find((t) => t.id === tripId);
+  if (!trip || !trip.stops[index]) return trips;
+  Object.assign(trip.stops[index], patch);
+  await saveTrips(trips);
+  return trips;
+}
+
 // Adds a stop to a trip (creating a default trip if none is active yet),
 // de-duping by stop name. Returns { trips, tripId }.
 export async function addStopToTrip(tripId, stop) {

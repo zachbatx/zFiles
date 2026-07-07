@@ -139,7 +139,31 @@ Both the overlay and the full-tab planner manage **multiple named trips**:
 - Reorder stops with ↑ / ↓, remove with ✕, or **Clear stops** to empty the
   trip.
 
-Trips persist in local storage and survive reloads and browser restarts.
+### Editing stops
+
+Each stop has an **✎ edit** button that opens inline fields for:
+
+- **Name** (e.g. correct an ambiguous saved-list name so it routes right)
+- **Date** and **Time**
+- **Notes**
+
+The date/time/notes show under the stop name and flow into the detailed
+itinerary. Edits save immediately.
+
+### Collapsible saved places
+
+The **Saved places** container collapses/expands as a whole (click its
+heading), and each list group within it collapses independently (click the
+group title) — handy when you've scraped several long lists.
+
+### Detailed view (itinerary)
+
+**Detailed view** (in the planner tab; the overlay has a button that opens it)
+shows a stop-by-stop **itinerary**: each stop with its date/time/notes, the
+driving **distance and time to the next stop**, and **overall distance and
+driving time** for the trip. Per-leg distances/times need a Google Maps API
+key (see below); without one, the itinerary still lists the stops and their
+schedule.
 
 ## Building a route
 
@@ -207,7 +231,7 @@ Stored in `chrome.storage.local`:
   `{ name, type, addressHint, listName, lat?, lng? }`
 - **`trips`** — array of trips:
   `{ id, title, summary, startDate, endDate, stops: [stop, …] }`
-  where a stop is `{ name, listName, addressHint, lat?, lng? }`
+  where a stop is `{ name, listName, addressHint, lat?, lng?, date?, time?, notes? }`
 - **`activeTripId`** — id of the currently selected trip.
 - **`googleMapsApiKey`** — the optional API key.
 

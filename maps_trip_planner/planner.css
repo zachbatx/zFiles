@@ -219,6 +219,118 @@ main {
   margin-top: 6px;
 }
 
+h2.toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+h2.toggle .caret {
+  display: inline-block;
+  width: 12px;
+  color: #80868b;
+}
+
+.list-group-title.toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.list-group-title .caret {
+  display: inline-block;
+  width: 10px;
+}
+
+.wide-btn {
+  width: 100%;
+  margin-top: 8px;
+  border: 1px solid #dadce0;
+  background: #fff;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.stop-sub {
+  font-size: 11px;
+  color: #5f6368;
+}
+
+.stop-editor {
+  padding: 8px 4px;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.stop-editor input[type="text"] {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.stop-editor .se-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.stop-editor .se-row label {
+  font-size: 11px;
+  color: #5f6368;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.stop-editor input[type="date"],
+.stop-editor input[type="time"] {
+  padding: 5px;
+  border: 1px solid #dadce0;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+#itinerary {
+  margin-top: 12px;
+  border-top: 1px solid #eee;
+  padding-top: 10px;
+}
+
+.itin-stop {
+  display: flex;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.itin-stop .itin-idx {
+  font-weight: 700;
+  color: #1a73e8;
+  width: 18px;
+  flex-shrink: 0;
+}
+
+.itin-when {
+  font-size: 11px;
+  color: #5f6368;
+}
+
+.itin-leg {
+  font-size: 12px;
+  color: #188038;
+  margin: 2px 0 2px 26px;
+  padding-left: 10px;
+  border-left: 2px solid #ceead6;
+}
+
+.itin-totals {
+  font-weight: 700;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #eee;
+}
+
 .stop-row {
   display: flex;
   align-items: center;

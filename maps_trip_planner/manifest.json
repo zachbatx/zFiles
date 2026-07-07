@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Maps Trip Planner",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Turn your Google Maps saved places into routed trips, with an overlay panel that reacts to places you click on the map.",
   "action": {
     "default_popup": "popup.html",

@@ -11,6 +11,7 @@ import {
   updateTrip,
   deleteTrip,
   addStopToTrip,
+  updateStopInTrip,
 } from "./lib/storage.js";
 import { buildDirectionsUrl, buildEmbedUrl, fetchDirectionsLegs } from "./lib/route.js";
 
@@ -40,12 +41,18 @@ const tfEnd = document.getElementById("tf-end");
 const tfCancel = document.getElementById("tf-cancel");
 const tfSave = document.getElementById("tf-save");
 const tripMeta = document.getElementById("trip-meta");
+const libraryToggle = document.getElementById("library-toggle");
+const detailViewBtn = document.getElementById("detail-view-btn");
+const itineraryEl = document.getElementById("itinerary");
 
 let locations = [];
 let trips = [];
 let activeId = "";
 let apiKey = "";
 let formMode = null;
+let editingStop = null;
+let libCollapsed = false;
+const collapsedGroups = new Set();
 
 const norm = (s) => (s || "").trim().toLowerCase();
 const activeTrip = () => trips.find((t) => t.id === activeId) || null;
@@ -62,6 +69,12 @@ function escapeHtml(str) {
 }
 
 function renderLibrary() {
+  const caret = libraryToggle.querySelector(".caret");
+  if (caret) caret.textContent = libCollapsed ? "▸" : "▾";
+  libraryList.classList.toggle("hidden", libCollapsed);
+  searchInput.classList.toggle("hidden", libCollapsed);
+  if (libCollapsed) return;
+
   const query = searchInput.value.trim().toLowerCase();
   const filtered = locations.filter((p) => !query || p.name.toLowerCase().includes(query));
 
@@ -79,10 +92,17 @@ function renderLibrary() {
   }
 
   for (const [listName, places] of groups) {
+    const collapsed = collapsedGroups.has(listName);
     const title = document.createElement("div");
-    title.className = "list-group-title";
-    title.textContent = `${listName} (${places.length})`;
+    title.className = "list-group-title toggle";
+    title.innerHTML = `<span class="caret">${collapsed ? "▸" : "▾"}</span> ${escapeHtml(listName)} (${places.length})`;
+    title.addEventListener("click", () => {
+      if (collapsedGroups.has(listName)) collapsedGroups.delete(listName);
+      else collapsedGroups.add(listName);
+      renderLibrary();
+    });
     libraryList.appendChild(title);
+    if (collapsed) continue;
 
     for (const place of places) {
       const row = document.createElement("div");
@@ -161,6 +181,10 @@ function renderTrip() {
   }
 
   t.stops.forEach((stop, i) => {
+    if (editingStop === i) {
+      tripList.appendChild(buildStopEditor(stop, i));
+      return;
+    }
     const row = document.createElement("div");
     row.className = "stop-row";
 
@@ -168,10 +192,15 @@ function renderTrip() {
     index.className = "stop-index";
     index.textContent = String(i + 1);
 
-    const name = document.createElement("div");
-    name.className = "stop-name";
-    name.textContent = stop.name;
-    name.title = stop.name;
+    const info = document.createElement("div");
+    info.className = "stop-name";
+    const sched = [stop.date, stop.time].filter(Boolean).join(" ");
+    info.innerHTML =
+      `<div>${escapeHtml(stop.name)}</div>` +
+      (sched || stop.notes
+        ? `<div class="stop-sub">${escapeHtml([sched, stop.notes].filter(Boolean).join(" · "))}</div>`
+        : "");
+    info.title = stop.name;
 
     const controls = document.createElement("div");
     controls.className = "stop-controls";
@@ -188,18 +217,61 @@ function renderTrip() {
     downBtn.disabled = i === t.stops.length - 1;
     downBtn.addEventListener("click", () => moveStop(i, 1));
 
+    const editBtn = document.createElement("button");
+    editBtn.className = "row-btn";
+    editBtn.textContent = "✎";
+    editBtn.title = "Edit stop";
+    editBtn.addEventListener("click", () => { editingStop = i; renderTrip(); });
+
     const removeBtn = document.createElement("button");
     removeBtn.className = "row-btn";
     removeBtn.textContent = "✕";
     removeBtn.addEventListener("click", () => removeStop(i));
 
-    controls.append(upBtn, downBtn, removeBtn);
-    row.append(index, name, controls);
+    controls.append(upBtn, downBtn, editBtn, removeBtn);
+    row.append(index, info, controls);
     tripList.appendChild(row);
   });
 }
 
+function buildStopEditor(stop, i) {
+  const box = document.createElement("div");
+  box.className = "stop-editor";
+  box.innerHTML = `
+    <input class="se-name" type="text" value="${escapeHtml(stop.name)}" placeholder="Stop name" />
+    <div class="se-row">
+      <label>Date <input class="se-date" type="date" value="${escapeHtml(stop.date || "")}" /></label>
+      <label>Time <input class="se-time" type="time" value="${escapeHtml(stop.time || "")}" /></label>
+    </div>
+    <input class="se-notes" type="text" value="${escapeHtml(stop.notes || "")}" placeholder="Notes (optional)" />
+    <div class="trip-actions">
+      <button class="se-done primary">Done</button>
+    </div>
+  `;
+  const save = async () => {
+    trips = await updateStopInTrip(activeId, i, {
+      name: box.querySelector(".se-name").value.trim() || stop.name,
+      date: box.querySelector(".se-date").value,
+      time: box.querySelector(".se-time").value,
+      notes: box.querySelector(".se-notes").value.trim(),
+    });
+  };
+  box.querySelectorAll("input").forEach((inp) => inp.addEventListener("change", save));
+  box.querySelector(".se-done").addEventListener("click", async () => {
+    await save();
+    editingStop = null;
+    renderTrip();
+    refreshItineraryIfOpen();
+  });
+  return box;
+}
+
+function refreshItineraryIfOpen() {
+  if (itineraryEl.dataset.open === "1") renderItinerary();
+}
+
 async function reloadTrips() {
+  editingStop = null;
   trips = await getTrips();
   activeId = await getActiveTripId();
   if (!activeTrip() && trips.length) {
@@ -209,6 +281,7 @@ async function reloadTrips() {
   renderTripBar();
   renderTrip();
   renderLibrary();
+  refreshItineraryIfOpen();
 }
 
 async function addStop(place) {
@@ -220,6 +293,7 @@ async function addStop(place) {
   renderTripBar();
   renderTrip();
   renderLibrary();
+  refreshItineraryIfOpen();
 }
 
 async function moveStop(index, delta) {
@@ -227,17 +301,21 @@ async function moveStop(index, delta) {
   const target = index + delta;
   if (!t || target < 0 || target >= t.stops.length) return;
   [t.stops[index], t.stops[target]] = [t.stops[target], t.stops[index]];
+  editingStop = null;
   await saveTrips(trips);
   renderTrip();
+  refreshItineraryIfOpen();
 }
 
 async function removeStop(index) {
   const t = activeTrip();
   if (!t) return;
   t.stops.splice(index, 1);
+  editingStop = null;
   await saveTrips(trips);
   renderTrip();
   renderLibrary();
+  refreshItineraryIfOpen();
 }
 
 async function deletePlace(place) {
@@ -340,8 +418,86 @@ async function buildRoute() {
   }
 }
 
+// ---- Detailed itinerary view -------------------------------------------
+// Combines each stop's editable schedule (date/time/notes) with the driving
+// leg to the next stop and overall totals. Distances/times need an API key
+// (Directions API); without one, it still shows the stop-by-stop schedule.
+async function renderItinerary() {
+  const t = activeTrip();
+  itineraryEl.classList.remove("hidden");
+  if (!t || t.stops.length === 0) {
+    itineraryEl.innerHTML = '<p class="hint">Add stops to see the itinerary.</p>';
+    return;
+  }
+
+  let legs = null;
+  let totals = null;
+  if (apiKey && t.stops.length >= 2) {
+    itineraryEl.innerHTML = '<p class="hint">Loading distances…</p>';
+    try {
+      const result = await fetchDirectionsLegs(t.stops, apiKey);
+      legs = result.legs;
+      totals = result;
+    } catch (err) {
+      // Fall through to a schedule-only itinerary with a note.
+      legs = null;
+      totals = { error: err.message };
+    }
+  }
+
+  itineraryEl.innerHTML = `<h2>Itinerary — ${escapeHtml(t.title || "Untitled trip")}</h2>`;
+  t.stops.forEach((stop, i) => {
+    const when = [stop.date, stop.time].filter(Boolean).join(" ");
+    const stopEl = document.createElement("div");
+    stopEl.className = "itin-stop";
+    stopEl.innerHTML =
+      `<div class="itin-idx">${i + 1}</div>` +
+      `<div><div>${escapeHtml(stop.name)}</div>` +
+      (when ? `<div class="itin-when">${escapeHtml(when)}</div>` : "") +
+      (stop.notes ? `<div class="itin-when">${escapeHtml(stop.notes)}</div>` : "") +
+      `</div>`;
+    itineraryEl.appendChild(stopEl);
+
+    if (legs && i < legs.length) {
+      const legEl = document.createElement("div");
+      legEl.className = "itin-leg";
+      legEl.textContent = `↓ ${legs[i].distanceText} · ${legs[i].durationText}`;
+      itineraryEl.appendChild(legEl);
+    }
+  });
+
+  const totalsEl = document.createElement("div");
+  totalsEl.className = "itin-totals";
+  if (totals && totals.totalMiles) {
+    totalsEl.textContent = `Total: ${totals.totalMiles} mi · ${totals.totalHours} hr driving`;
+  } else if (totals && totals.error) {
+    totalsEl.innerHTML = `<span class="hint">Distances unavailable: ${escapeHtml(totals.error)}.</span>`;
+  } else if (!apiKey) {
+    totalsEl.innerHTML =
+      '<span class="hint">Add a Google Maps API key (top-right) to include distances and driving time.</span>';
+  }
+  itineraryEl.appendChild(totalsEl);
+}
+
 // ---- Wiring -------------------------------------------------------------
 settingsToggle.addEventListener("click", () => settingsPanel.classList.toggle("hidden"));
+
+libraryToggle.addEventListener("click", () => {
+  libCollapsed = !libCollapsed;
+  renderLibrary();
+});
+
+detailViewBtn.addEventListener("click", () => {
+  if (!itineraryEl.classList.contains("hidden") && itineraryEl.dataset.open === "1") {
+    itineraryEl.classList.add("hidden");
+    itineraryEl.dataset.open = "0";
+    detailViewBtn.textContent = "Detailed view";
+  } else {
+    itineraryEl.dataset.open = "1";
+    detailViewBtn.textContent = "Hide detailed view";
+    renderItinerary();
+  }
+});
 
 saveKeyBtn.addEventListener("click", async () => {
   apiKey = apiKeyInput.value.trim();
@@ -353,12 +509,14 @@ searchInput.addEventListener("input", renderLibrary);
 
 tripSelect.addEventListener("change", async () => {
   activeId = tripSelect.value;
+  editingStop = null;
   await setActiveTripId(activeId);
   closeForm();
   renderTripBar();
   renderTrip();
   renderLibrary();
   resetRoutePanel('Add at least two stops, then click "Build route".');
+  refreshItineraryIfOpen();
 });
 
 newTripBtn.addEventListener("click", () => openForm("create"));
@@ -381,10 +539,12 @@ clearTripBtn.addEventListener("click", async () => {
   const t = activeTrip();
   if (!t) return;
   t.stops = [];
+  editingStop = null;
   await saveTrips(trips);
   renderTrip();
   renderLibrary();
   resetRoutePanel('Add at least two stops, then click "Build route".');
+  refreshItineraryIfOpen();
 });
 
 buildRouteBtn.addEventListener("click", buildRoute);
@@ -393,6 +553,13 @@ async function init() {
   [locations, apiKey] = await Promise.all([getLocations(), getApiKey()]);
   apiKeyInput.value = apiKey;
   await reloadTrips();
+
+  // The overlay's "Detailed view" button opens planner.html?view=detail.
+  if (new URLSearchParams(location.search).get("view") === "detail") {
+    itineraryEl.dataset.open = "1";
+    detailViewBtn.textContent = "Hide detailed view";
+    renderItinerary();
+  }
 }
 
 init();

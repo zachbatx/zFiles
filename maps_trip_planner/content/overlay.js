@@ -27,6 +27,9 @@
   let activeId = "";
   let selected = null; // the place currently clicked on the map, or null
   let formMode = null; // "create" | "edit" | null
+  let editingStop = null; // index of the stop being edited, or null
+  let libCollapsed = false; // saved-places section collapsed?
+  const collapsedGroups = new Set(); // list names collapsed within the library
 
   const norm = (s) => (s || "").trim().toLowerCase();
   const activeTrip = () => trips.find((t) => t.id === activeId) || null;
@@ -63,7 +66,13 @@
     }
     .section-title { font-size: 10px; font-weight: 700; color: #80868b; text-transform: uppercase; letter-spacing: .04em; margin: 8px 0 4px; }
     .list { max-height: 150px; overflow-y: auto; border: 1px solid #eee; border-radius: 6px; padding: 2px; }
-    .group-title { font-size: 10px; font-weight: 700; color: #80868b; text-transform: uppercase; margin: 6px 2px 2px; }
+    .group-title { font-size: 10px; font-weight: 700; color: #80868b; text-transform: uppercase; margin: 6px 2px 2px; cursor: pointer; user-select: none; }
+    .group-title .caret { display: inline-block; width: 10px; }
+    .section-title.toggle { cursor: pointer; user-select: none; }
+    .stop-sub { font-size: 10px; color: #5f6368; }
+    .stop-edit { padding: 6px 4px; border-bottom: 1px solid #f1f3f4; }
+    .stop-edit .two { display: flex; gap: 6px; }
+    .stop-edit input { margin-bottom: 6px; }
     .place, .stop { display: flex; align-items: center; gap: 6px; padding: 4px; border-radius: 5px; }
     .place:hover { background: #f1f3f4; }
     .place.match { background: #fef7e0; outline: 2px solid #f9ab00; }
@@ -142,7 +151,7 @@
       <div class="trip-meta hidden"></div>
 
       <input class="search" type="search" placeholder="Search saved places…" />
-      <div class="section-title">Saved places</div>
+      <div class="section-title toggle lib-toggle"><span class="caret">▾</span> Saved places</div>
       <div class="list library"></div>
 
       <div class="section-title">Stops</div>
@@ -151,6 +160,7 @@
         <button class="act clear">Clear stops</button>
         <button class="act primary route" disabled>Show route on map</button>
       </div>
+      <button class="act details">Detailed view (distances &amp; schedule)</button>
       <div class="status"></div>
     </div>
   `;
@@ -206,6 +216,10 @@
 
   // ---- Saved-places library ----------------------------------------------
   function renderLibrary() {
+    $(".lib-toggle .caret").textContent = libCollapsed ? "▸" : "▾";
+    libraryEl.classList.toggle("hidden", libCollapsed);
+    if (libCollapsed) return;
+
     const q = searchEl.value.trim().toLowerCase();
     const filtered = locations.filter((p) => !q || p.name.toLowerCase().includes(q));
     const groups = new Map();
@@ -219,10 +233,17 @@
       return;
     }
     for (const [listName, places] of groups) {
+      const collapsed = collapsedGroups.has(listName);
       const gt = document.createElement("div");
       gt.className = "group-title";
-      gt.textContent = `${listName} (${places.length})`;
+      gt.innerHTML = `<span class="caret">${collapsed ? "▸" : "▾"}</span> ${escapeHtml(listName)} (${places.length})`;
+      gt.addEventListener("click", () => {
+        if (collapsedGroups.has(listName)) collapsedGroups.delete(listName);
+        else collapsedGroups.add(listName);
+        renderLibrary();
+      });
       libraryEl.appendChild(gt);
+      if (collapsed) continue;
       for (const place of places) {
         const row = document.createElement("div");
         row.className = "place";
@@ -319,6 +340,7 @@
   }
 
   async function reloadTrips() {
+    editingStop = null;
     trips = await storage.getTrips();
     activeId = await storage.getActiveTripId();
     if (!activeTrip() && trips.length) {
@@ -345,15 +367,23 @@
       return;
     }
     t.stops.forEach((stop, i) => {
+      if (editingStop === i) {
+        tripEl.appendChild(buildStopEditor(stop, i));
+        return;
+      }
       const row = document.createElement("div");
       row.className = "stop";
       const idx = document.createElement("div");
       idx.className = "idx";
       idx.textContent = String(i + 1);
-      const name = document.createElement("div");
-      name.className = "grow name";
-      name.textContent = stop.name;
-      name.title = stop.name;
+      const info = document.createElement("div");
+      info.className = "grow";
+      const sched = [stop.date, stop.time].filter(Boolean).join(" ");
+      info.innerHTML =
+        `<div class="name">${escapeHtml(stop.name)}</div>` +
+        (sched || stop.notes
+          ? `<div class="stop-sub">${escapeHtml([sched, stop.notes].filter(Boolean).join(" · "))}</div>`
+          : "");
       const up = document.createElement("button");
       up.className = "rowbtn";
       up.textContent = "↑";
@@ -364,13 +394,50 @@
       down.textContent = "↓";
       down.disabled = i === t.stops.length - 1;
       down.addEventListener("click", () => moveStop(i, 1));
+      const edit = document.createElement("button");
+      edit.className = "rowbtn";
+      edit.textContent = "✎";
+      edit.title = "Edit stop";
+      edit.addEventListener("click", () => { editingStop = i; renderStops(); });
       const rm = document.createElement("button");
       rm.className = "rowbtn";
       rm.textContent = "✕";
       rm.addEventListener("click", () => removeStop(i));
-      row.append(idx, name, up, down, rm);
+      row.append(idx, info, up, down, edit, rm);
       tripEl.appendChild(row);
     });
+  }
+
+  function buildStopEditor(stop, i) {
+    const box = document.createElement("div");
+    box.className = "stop-edit";
+    box.innerHTML = `
+      <input class="se-name" type="text" value="${escapeHtml(stop.name)}" placeholder="Stop name" />
+      <div class="two">
+        <input class="se-date" type="date" value="${escapeHtml(stop.date || "")}" title="Date" />
+        <input class="se-time" type="time" value="${escapeHtml(stop.time || "")}" title="Time" />
+      </div>
+      <input class="se-notes" type="text" value="${escapeHtml(stop.notes || "")}" placeholder="Notes (optional)" />
+      <div class="actions">
+        <button class="act se-done primary">Done</button>
+      </div>
+    `;
+    const save = async () => {
+      trips = await storage.updateStopInTrip(activeId, i, {
+        name: box.querySelector(".se-name").value.trim() || stop.name,
+        date: box.querySelector(".se-date").value,
+        time: box.querySelector(".se-time").value,
+        notes: box.querySelector(".se-notes").value.trim(),
+      });
+    };
+    box.querySelectorAll("input").forEach((inp) => inp.addEventListener("change", save));
+    box.querySelector(".se-done").addEventListener("click", async () => {
+      await save();
+      editingStop = null;
+      renderStops();
+      renderLibrary();
+    });
+    return box;
   }
 
   async function persistTrips() {
@@ -406,6 +473,7 @@
     const t = activeTrip();
     if (!t) return;
     t.stops.splice(i, 1);
+    editingStop = null;
     await persistTrips();
     renderStops();
     renderLibrary();
@@ -490,8 +558,19 @@
 
   searchEl.addEventListener("input", renderLibrary);
 
+  $(".lib-toggle").addEventListener("click", () => {
+    libCollapsed = !libCollapsed;
+    renderLibrary();
+  });
+
+  // Opens the full planner tab on the active trip's detailed itinerary.
+  $(".details").addEventListener("click", () => {
+    window.open(chrome.runtime.getURL("planner.html?view=detail"), "_blank");
+  });
+
   tripSelect.addEventListener("change", async () => {
     activeId = tripSelect.value;
+    editingStop = null;
     await storage.setActiveTripId(activeId);
     closeForm();
     renderTripBar();
@@ -521,6 +600,7 @@
     const t = activeTrip();
     if (!t) return;
     t.stops = [];
+    editingStop = null;
     await persistTrips();
     renderStops();
     renderLibrary();
