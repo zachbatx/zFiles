@@ -485,13 +485,19 @@
   // /maps/place/<Name>/@<lat>,<lng>,.... pushState doesn't cross the
   // isolated-world boundary, so we poll location.href (plus popstate).
   function parseSelectedPlace() {
-    const m = location.pathname.match(
-      /\/maps\/place\/([^/@]+)(?:\/@(-?\d+\.\d+),(-?\d+\.\d+))?/
-    );
+    const m = location.pathname.match(/\/maps\/place\/([^/@]+)/);
     if (!m) return null;
     let name = decodeURIComponent(m[1].replace(/\+/g, " ")).trim();
-    const lat = m[2] ? parseFloat(m[2]) : null;
-    const lng = m[3] ? parseFloat(m[3]) : null;
+    // The place's REAL coordinates are in the data segment as !3d<lat>!4d<lng>.
+    // The /@lat,lng that also appears in the URL is only the map viewport
+    // center, so we must not use that as the place location.
+    let lat = null,
+      lng = null;
+    const d = location.href.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+    if (d) {
+      lat = parseFloat(d[1]);
+      lng = parseFloat(d[2]);
+    }
     if (/^-?\d+\.\d+,\s*-?\d+\.\d+$/.test(name)) name = "Dropped pin";
     return { name, lat, lng };
   }
@@ -564,8 +570,10 @@
   });
 
   // Opens the full planner tab on the active trip's detailed itinerary.
+  // A content script can't open an extension page itself, so ask the
+  // service worker to do it.
   $(".details").addEventListener("click", () => {
-    window.open(chrome.runtime.getURL("planner.html?view=detail"), "_blank");
+    chrome.runtime.sendMessage({ type: "openPlanner", query: "?view=detail" });
   });
 
   tripSelect.addEventListener("change", async () => {

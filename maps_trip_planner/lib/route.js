@@ -3,9 +3,11 @@
 // them server-side, so no client-side geocoding is needed.
 
 function stopQuery(stop) {
-  // Prefer exact coordinates when we have them (map-picked stops), since
-  // that avoids Google mis-resolving an ambiguous place name.
-  if (stop.lat != null && stop.lng != null) return `${stop.lat},${stop.lng}`;
+  // Route by name/address. We deliberately do NOT route by a stop's stored
+  // lat/lng: for map-clicked places those coordinates come from Google's URL
+  // and can be the map *viewport* center rather than the place itself, which
+  // would route to the wrong spot. A place's name/address resolves reliably
+  // server-side.
   return stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
 }
 
