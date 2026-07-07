@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trip Planner</title>
+  <link rel="stylesheet" href="planner.css" />
+</head>
+<body>
+  <header>
+    <h1>Trip Planner</h1>
+    <button id="settings-toggle" class="link-btn">API key settings</button>
+  </header>
+
+  <section id="settings-panel" class="settings hidden">
+    <label for="api-key-input">Google Maps API key (optional)</label>
+    <input type="text" id="api-key-input" placeholder="Paste an API key to unlock the embedded map + distances" />
+    <button id="save-key-btn">Save</button>
+    <p class="hint">
+      Needs the <strong>Maps Embed API</strong> and <strong>Directions API</strong> enabled, and should be
+      restricted to your extension in Google Cloud Console. Without a key, you can still build a route and
+      open it directly in Google Maps.
+    </p>
+  </section>
+
+  <main>
+    <section class="panel" id="library-panel">
+      <h2>Saved places</h2>
+      <input type="search" id="search-input" placeholder="Search saved places…" />
+      <div id="library-list" class="scroll-list"></div>
+    </section>
+
+    <section class="panel" id="trip-panel">
+      <h2>Trip stops</h2>
+      <div id="trip-list" class="scroll-list"></div>
+      <div class="trip-actions">
+        <button id="clear-trip-btn">Clear stops</button>
+        <button id="build-route-btn" class="primary">Build route</button>
+      </div>
+    </section>
+
+    <section class="panel" id="route-panel">
+      <h2>Route</h2>
+      <div id="route-empty" class="hint">Add at least two stops, then click "Build route".</div>
+      <a id="open-in-maps-link" class="hidden primary-link" target="_blank" rel="noopener">Open route in Google Maps</a>
+      <iframe id="route-embed" class="hidden" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div id="route-legs"></div>
+    </section>
+  </main>
+
+  <script type="module" src="planner.js"></script>
+</body>
+</html>

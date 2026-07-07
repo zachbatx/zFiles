@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Maps Trip Planner</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <h1>Maps Trip Planner</h1>
+
+  <section>
+    <button id="scrape-btn">Scrape saved list from this tab</button>
+    <p id="scrape-hint" class="hint"></p>
+  </section>
+
+  <section>
+    <label class="file-label" for="import-input">Import HTML or JSON export</label>
+    <input type="file" id="import-input" accept=".html,.htm,.json" />
+  </section>
+
+  <section id="status" class="hint" aria-live="polite"></section>
+
+  <section class="summary">
+    <span id="location-count">0 locations saved</span>
+  </section>
+
+  <button id="open-planner-btn" class="primary">Open Trip Planner</button>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
