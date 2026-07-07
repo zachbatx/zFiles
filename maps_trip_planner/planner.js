@@ -470,11 +470,19 @@ async function renderItinerary() {
   totalsEl.className = "itin-totals";
   if (totals && totals.totalMiles) {
     totalsEl.textContent = `Total: ${totals.totalMiles} mi · ${totals.totalHours} hr driving`;
+  } else if (t.measuredTotal) {
+    // Free overall total read from Google's own directions view by the
+    // overlay after "Show route on map" — no API key needed.
+    const m = t.measuredTotal;
+    totalsEl.innerHTML =
+      `Total: ${escapeHtml(m.distanceText)} · ${escapeHtml(m.durationText)} ` +
+      `<span class="hint">(from Google Maps)</span>`;
   } else if (totals && totals.error) {
     totalsEl.innerHTML = `<span class="hint">Distances unavailable: ${escapeHtml(totals.error)}.</span>`;
-  } else if (!apiKey) {
+  } else {
     totalsEl.innerHTML =
-      '<span class="hint">Add a Google Maps API key (top-right) to include distances and driving time.</span>';
+      '<span class="hint">Use “Show route on map” in the overlay to capture the total distance/time, ' +
+      "or add a Google Maps API key (top-right) for per-leg distances.</span>";
   }
   itineraryEl.appendChild(totalsEl);
 }

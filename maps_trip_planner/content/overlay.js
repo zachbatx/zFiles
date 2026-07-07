@@ -502,6 +502,57 @@
     return { name, lat, lng };
   }
 
+  // ---- Reading Google's own route totals off the /maps/dir/ page ---------
+  // After "Show route on map" navigates the tab to Google's directions view,
+  // Google has already computed the trip's distance and time. We're running
+  // on that page, so we read those numbers straight from the DOM instead of
+  // needing the Directions API. Best-effort: Google's markup is unofficial.
+  const DUR_RE = /(\d+\s*days?|\d+\s*hr(?:\s*\d+\s*min)?|\d+\s*min)/i;
+  const DIST_RE = /([\d.,]+)\s*(miles|mi|km)\b/i;
+
+  function parseRouteTotalsFromDom() {
+    if (!/\/maps\/dir\//.test(location.pathname)) return null;
+    // Prefer a route-option aria-label that carries both a duration and a
+    // distance (e.g. "13 hr 15 min, 827 miles, This route has tolls").
+    const labels = Array.from(document.querySelectorAll("[aria-label]")).map(
+      (e) => e.getAttribute("aria-label") || ""
+    );
+    for (const l of labels) {
+      if (DUR_RE.test(l) && DIST_RE.test(l)) {
+        return { durationText: l.match(DUR_RE)[1].trim(), distanceText: l.match(DIST_RE)[0].trim() };
+      }
+    }
+    // Fallback: scan the panel's visible text for the first duration+distance.
+    const text = document.body.innerText || "";
+    const d = text.match(DUR_RE);
+    const s = text.match(DIST_RE);
+    if (d && s) return { durationText: d[1].trim(), distanceText: s[0].trim() };
+    return null;
+  }
+
+  // Exposed for automated testing of the parser.
+  window.__mtpParseTotals = parseRouteTotalsFromDom;
+
+  async function captureRouteTotals() {
+    if (!/\/maps\/dir\//.test(location.pathname)) return;
+    for (let i = 0; i < 16; i++) {
+      const totals = parseRouteTotalsFromDom();
+      if (totals) {
+        const allTrips = await storage.getTrips();
+        const id = await storage.getActiveTripId();
+        const t = allTrips.find((x) => x.id === id);
+        if (t) {
+          t.measuredTotal = { ...totals, at: Date.now() };
+          await storage.saveTrips(allTrips);
+          trips = allTrips;
+          setStatus(`Route: ${totals.distanceText} · ${totals.durationText}`);
+        }
+        return;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
   let lastSelKey = "";
   function checkSelection() {
     const p = parseSelectedPlace();
@@ -672,6 +723,9 @@
     locations = await storage.getLocations();
     await reloadTrips();
     checkSelection();
+    // If we've just landed on a directions page (e.g. from "Show route on
+    // map"), read Google's computed distance/time for the active trip.
+    captureRouteTotals();
   }
 
   await init();

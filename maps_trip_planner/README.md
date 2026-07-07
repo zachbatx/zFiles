@@ -161,9 +161,19 @@ group title) — handy when you've scraped several long lists.
 **Detailed view** (in the planner tab; the overlay has a button that opens it)
 shows a stop-by-stop **itinerary**: each stop with its date/time/notes, the
 driving **distance and time to the next stop**, and **overall distance and
-driving time** for the trip. Per-leg distances/times need a Google Maps API
-key (see below); without one, the itinerary still lists the stops and their
-schedule.
+driving time** for the trip.
+
+Two ways the distance/time get filled in:
+
+- **Overall total — free, no API key.** When you click **Show route on map**,
+  Google computes the trip and shows it in its directions panel. The overlay
+  reads that total ("827 miles · 13 hr 15 min") straight off the page and saves
+  it to the trip, and the detailed view displays it (marked *"from Google
+  Maps"*). This is best-effort — it depends on Google's live page markup.
+- **Per-leg distances (between each stop) — needs an API key.** Google's
+  multi-stop directions panel only exposes one overall total, not a breakdown
+  per waypoint, so per-leg figures come from the Directions API when a key is
+  set. Without a key you still get the schedule plus the free overall total.
 
 ## Building a route
 
@@ -246,8 +256,12 @@ automatically the first time trips are read, so no data is lost on upgrade.
 - **Permissions requested:**
   - `storage` — save your places, trips, and API key locally.
   - `scripting` + `activeTab` — run the scrape on the active Maps tab.
-  - `host_permissions` / `content_scripts` for `https://www.google.com/maps/*`
-    — inject the overlay and read the open saved list.
+  - `host_permissions` / `content_scripts` / `web_accessible_resources` all
+    scoped to `https://www.google.com/maps/*` — inject the overlay, read the
+    open saved list, and read Google's route totals. The extension requests no
+    access to any other part of google.com.
+  - `tabs` — lets the background service worker open the planner tab (used by
+    the overlay's "Detailed view" button).
 
 ## Known limitations
 
