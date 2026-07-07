@@ -256,10 +256,12 @@ automatically the first time trips are read, so no data is lost on upgrade.
 - **Permissions requested:**
   - `storage` — save your places, trips, and API key locally.
   - `scripting` + `activeTab` — run the scrape on the active Maps tab.
-  - `host_permissions` / `content_scripts` / `web_accessible_resources` all
-    scoped to `https://www.google.com/maps/*` — inject the overlay, read the
-    open saved list, and read Google's route totals. The extension requests no
-    access to any other part of google.com.
+  - `host_permissions` and `content_scripts` are scoped to
+    `https://www.google.com/maps/*` — that's what controls where the extension
+    actually runs (only on Maps). `web_accessible_resources` has to use an
+    origin-level pattern (`https://www.google.com/*`) because Chrome doesn't
+    allow a path there; it only declares which pages may load the extension's
+    own JS files, and only the Maps content script ever does.
   - `tabs` — lets the background service worker open the planner tab (used by
     the overlay's "Detailed view" button).
 
