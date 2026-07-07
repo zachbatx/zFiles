@@ -43,11 +43,36 @@ mirrors the planner without leaving the map:
 The panel and the popup/planner tab all read and write the same storage, so a
 trip you build in one shows up in the others.
 
+### Clicking places on the map
+
+When you click any place on Google Maps, the overlay detects it (by reading
+Google's own `/maps/place/...` URL, not its internal DOM) and shows a
+**Selected on map** card:
+
+- If that place is **already in your saved data**, the card shows an "Already
+  in saved places" badge and the matching row in the saved-places list is
+  highlighted.
+- **Add to saved places** stores it in a "Map picks" list (kept separate from
+  your scraped Google lists).
+- **Add to trip** drops it straight into the active trip as a stop. Because a
+  map-clicked place carries exact coordinates, it's routed by lat/lng — more
+  precise than a name lookup.
+
+### Multiple trips
+
+The overlay and planner both manage **multiple named trips**:
+
+- The **trip dropdown** switches between trips; **＋** creates one, **✎** edits
+  its details, **🗑** deletes it.
+- A new/edited trip has a **title, summary, start date, and end date**.
+- Each trip keeps its own ordered list of stops. "Add" always adds to the
+  currently-selected trip.
+
 ## Planning a trip (popup + full tab)
 
-Click **Open Trip Planner** in the popup. Search/select saved places on the
-left, add them to the trip in the middle, reorder with the ↑/↓ buttons, then
-**Build route**.
+Click **Open Trip Planner** in the popup. Pick or create a trip (with title,
+summary, and dates) in the middle column, search/select saved places on the
+left, add them, reorder with the ↑/↓ buttons, then **Build route**.
 
 - **No API key needed:** you get an **Open route in Google Maps** link built
   from your stops' names — Google resolves everything when you open it.
@@ -75,3 +100,7 @@ left, add them to the trip in the middle, reorder with the ↑/↓ buttons, then
   respond with CORS headers for browser-side requests. If your key/project
   doesn't allow that, the embedded map still renders — you just lose the
   distance/time breakdown, with a message saying so.
+- Map-click detection reads the `/maps/place/<name>/@lat,lng` URL Google sets
+  when you select a place. That URL scheme has been stable for years, but a
+  click that doesn't produce a `/maps/place/` URL (e.g. some transit or
+  area selections) won't populate the "Selected on map" card.

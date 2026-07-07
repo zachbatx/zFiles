@@ -3,8 +3,14 @@ import {
   removeLocation,
   getApiKey,
   setApiKey,
-  getCurrentTrip,
-  setCurrentTrip,
+  getTrips,
+  saveTrips,
+  getActiveTripId,
+  setActiveTripId,
+  createTrip,
+  updateTrip,
+  deleteTrip,
+  addStopToTrip,
 } from "./lib/storage.js";
 import { buildDirectionsUrl, buildEmbedUrl, fetchDirectionsLegs } from "./lib/route.js";
 
@@ -22,12 +28,37 @@ const openInMapsLink = document.getElementById("open-in-maps-link");
 const routeEmbed = document.getElementById("route-embed");
 const routeLegs = document.getElementById("route-legs");
 
-let locations = [];
-let trip = [];
-let apiKey = "";
+const tripSelect = document.getElementById("trip-select");
+const newTripBtn = document.getElementById("new-trip-btn");
+const editTripBtn = document.getElementById("edit-trip-btn");
+const deleteTripBtn = document.getElementById("delete-trip-btn");
+const tripForm = document.getElementById("trip-form");
+const tfTitle = document.getElementById("tf-title");
+const tfSummary = document.getElementById("tf-summary");
+const tfStart = document.getElementById("tf-start");
+const tfEnd = document.getElementById("tf-end");
+const tfCancel = document.getElementById("tf-cancel");
+const tfSave = document.getElementById("tf-save");
+const tripMeta = document.getElementById("trip-meta");
 
-function isInTrip(place) {
-  return trip.some((s) => s.listName === place.listName && s.name === place.name);
+let locations = [];
+let trips = [];
+let activeId = "";
+let apiKey = "";
+let formMode = null;
+
+const norm = (s) => (s || "").trim().toLowerCase();
+const activeTrip = () => trips.find((t) => t.id === activeId) || null;
+
+function inActiveTrip(name) {
+  const t = activeTrip();
+  return !!t && t.stops.some((s) => norm(s.name) === norm(name));
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
 }
 
 function renderLibrary() {
@@ -42,7 +73,8 @@ function renderLibrary() {
 
   libraryList.innerHTML = "";
   if (groups.size === 0) {
-    libraryList.innerHTML = '<p class="hint">No saved places yet. Use the extension popup to scrape or import a list.</p>';
+    libraryList.innerHTML =
+      '<p class="hint">No saved places yet. Use the extension popup or the on-map overlay to scrape or import a list.</p>';
     return;
   }
 
@@ -66,8 +98,9 @@ function renderLibrary() {
 
       const addBtn = document.createElement("button");
       addBtn.className = "row-btn";
-      addBtn.textContent = isInTrip(place) ? "Added" : "Add";
-      addBtn.disabled = isInTrip(place);
+      const already = inActiveTrip(place.name);
+      addBtn.textContent = already ? "Added" : "Add";
+      addBtn.disabled = already;
       addBtn.addEventListener("click", () => addStop(place));
 
       const removeBtn = document.createElement("button");
@@ -83,14 +116,51 @@ function renderLibrary() {
   }
 }
 
+function renderTripBar() {
+  tripSelect.innerHTML = "";
+  if (trips.length === 0) {
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.textContent = "No trips yet — create one";
+    tripSelect.appendChild(opt);
+  }
+  for (const t of trips) {
+    const opt = document.createElement("option");
+    opt.value = t.id;
+    opt.textContent = t.title || "Untitled trip";
+    if (t.id === activeId) opt.selected = true;
+    tripSelect.appendChild(opt);
+  }
+
+  const t = activeTrip();
+  editTripBtn.disabled = !t;
+  deleteTripBtn.disabled = !t;
+
+  if (t && (t.summary || t.startDate || t.endDate)) {
+    const dates = t.startDate || t.endDate ? `${t.startDate || "…"} → ${t.endDate || "…"}` : "";
+    tripMeta.innerHTML =
+      `<div class="mt-title">${escapeHtml(t.title || "")}</div>` +
+      (dates ? `<div>${escapeHtml(dates)}</div>` : "") +
+      (t.summary ? `<div>${escapeHtml(t.summary)}</div>` : "");
+    tripMeta.classList.remove("hidden");
+  } else {
+    tripMeta.classList.add("hidden");
+  }
+}
+
 function renderTrip() {
+  const t = activeTrip();
   tripList.innerHTML = "";
-  if (trip.length === 0) {
+  if (!t) {
+    tripList.innerHTML = '<p class="hint">Create or pick a trip to add stops.</p>';
+    return;
+  }
+  if (t.stops.length === 0) {
     tripList.innerHTML = '<p class="hint">Add places from the left to build your route.</p>';
     return;
   }
 
-  trip.forEach((stop, i) => {
+  t.stops.forEach((stop, i) => {
     const row = document.createElement("div");
     row.className = "stop-row";
 
@@ -115,7 +185,7 @@ function renderTrip() {
     const downBtn = document.createElement("button");
     downBtn.className = "row-btn";
     downBtn.textContent = "↓";
-    downBtn.disabled = i === trip.length - 1;
+    downBtn.disabled = i === t.stops.length - 1;
     downBtn.addEventListener("click", () => moveStop(i, 1));
 
     const removeBtn = document.createElement("button");
@@ -129,43 +199,95 @@ function renderTrip() {
   });
 }
 
-async function addStop(place) {
-  if (isInTrip(place)) return;
-  trip = [...trip, { name: place.name, listName: place.listName, addressHint: place.addressHint || "" }];
-  await setCurrentTrip(trip);
-  renderLibrary();
+async function reloadTrips() {
+  trips = await getTrips();
+  activeId = await getActiveTripId();
+  if (!activeTrip() && trips.length) {
+    activeId = trips[0].id;
+    await setActiveTripId(activeId);
+  }
+  renderTripBar();
   renderTrip();
+  renderLibrary();
+}
+
+async function addStop(place) {
+  const stop = { name: place.name, listName: place.listName, addressHint: place.addressHint || "" };
+  if (place.lat != null) { stop.lat = place.lat; stop.lng = place.lng; }
+  const { trips: updated, tripId } = await addStopToTrip(activeId, stop);
+  trips = updated;
+  activeId = tripId;
+  renderTripBar();
+  renderTrip();
+  renderLibrary();
 }
 
 async function moveStop(index, delta) {
+  const t = activeTrip();
   const target = index + delta;
-  if (target < 0 || target >= trip.length) return;
-  const copy = [...trip];
-  [copy[index], copy[target]] = [copy[target], copy[index]];
-  trip = copy;
-  await setCurrentTrip(trip);
+  if (!t || target < 0 || target >= t.stops.length) return;
+  [t.stops[index], t.stops[target]] = [t.stops[target], t.stops[index]];
+  await saveTrips(trips);
   renderTrip();
 }
 
 async function removeStop(index) {
-  trip = trip.filter((_, i) => i !== index);
-  await setCurrentTrip(trip);
-  renderLibrary();
+  const t = activeTrip();
+  if (!t) return;
+  t.stops.splice(index, 1);
+  await saveTrips(trips);
   renderTrip();
+  renderLibrary();
 }
 
 async function deletePlace(place) {
   locations = await removeLocation(place.listName, place.name);
-  if (isInTrip(place)) await removeStop(trip.findIndex((s) => s.listName === place.listName && s.name === place.name));
   renderLibrary();
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+// ---- Trip form (create / edit) ------------------------------------------
+function openForm(mode) {
+  formMode = mode;
+  const t = activeTrip();
+  if (mode === "edit" && t) {
+    tfTitle.value = t.title || "";
+    tfSummary.value = t.summary || "";
+    tfStart.value = t.startDate || "";
+    tfEnd.value = t.endDate || "";
+    tfSave.textContent = "Save changes";
+  } else {
+    tfTitle.value = "";
+    tfSummary.value = "";
+    tfStart.value = "";
+    tfEnd.value = "";
+    tfSave.textContent = "Create trip";
+  }
+  tripForm.classList.remove("hidden");
 }
 
+function closeForm() {
+  formMode = null;
+  tripForm.classList.add("hidden");
+}
+
+async function saveForm() {
+  const meta = {
+    title: tfTitle.value.trim() || "Untitled trip",
+    summary: tfSummary.value.trim(),
+    startDate: tfStart.value,
+    endDate: tfEnd.value,
+  };
+  if (formMode === "edit" && activeTrip()) {
+    await updateTrip(activeId, meta);
+  } else {
+    const t = await createTrip(meta);
+    activeId = t.id;
+  }
+  await reloadTrips();
+  closeForm();
+}
+
+// ---- Route --------------------------------------------------------------
 function resetRoutePanel(message) {
   routeEmpty.textContent = message;
   routeEmpty.classList.remove("hidden");
@@ -177,13 +299,15 @@ function resetRoutePanel(message) {
 }
 
 async function buildRoute() {
-  if (trip.length < 2) {
+  const t = activeTrip();
+  const stops = t ? t.stops : [];
+  if (stops.length < 2) {
     resetRoutePanel('Add at least two stops, then click "Build route".');
     return;
   }
 
   routeEmpty.classList.add("hidden");
-  const directionsUrl = buildDirectionsUrl(trip);
+  const directionsUrl = buildDirectionsUrl(stops);
   openInMapsLink.href = directionsUrl;
   openInMapsLink.classList.remove("hidden");
   routeLegs.innerHTML = "";
@@ -194,12 +318,12 @@ async function buildRoute() {
     return;
   }
 
-  routeEmbed.src = buildEmbedUrl(trip, apiKey);
+  routeEmbed.src = buildEmbedUrl(stops, apiKey);
   routeEmbed.classList.remove("hidden");
 
   routeLegs.innerHTML = '<p class="hint">Loading distances…</p>';
   try {
-    const result = await fetchDirectionsLegs(trip, apiKey);
+    const result = await fetchDirectionsLegs(stops, apiKey);
     routeLegs.innerHTML = "";
     for (const leg of result.legs) {
       const row = document.createElement("div");
@@ -216,9 +340,8 @@ async function buildRoute() {
   }
 }
 
-settingsToggle.addEventListener("click", () => {
-  settingsPanel.classList.toggle("hidden");
-});
+// ---- Wiring -------------------------------------------------------------
+settingsToggle.addEventListener("click", () => settingsPanel.classList.toggle("hidden"));
 
 saveKeyBtn.addEventListener("click", async () => {
   apiKey = apiKeyInput.value.trim();
@@ -228,21 +351,48 @@ saveKeyBtn.addEventListener("click", async () => {
 
 searchInput.addEventListener("input", renderLibrary);
 
-clearTripBtn.addEventListener("click", async () => {
-  trip = [];
-  await setCurrentTrip(trip);
-  renderLibrary();
+tripSelect.addEventListener("change", async () => {
+  activeId = tripSelect.value;
+  await setActiveTripId(activeId);
+  closeForm();
+  renderTripBar();
   renderTrip();
+  renderLibrary();
+  resetRoutePanel('Add at least two stops, then click "Build route".');
+});
+
+newTripBtn.addEventListener("click", () => openForm("create"));
+editTripBtn.addEventListener("click", () => openForm("edit"));
+tfCancel.addEventListener("click", closeForm);
+tfSave.addEventListener("click", saveForm);
+
+deleteTripBtn.addEventListener("click", async () => {
+  const t = activeTrip();
+  if (!t) return;
+  trips = await deleteTrip(t.id);
+  activeId = await getActiveTripId();
+  renderTripBar();
+  renderTrip();
+  renderLibrary();
+  resetRoutePanel('Add at least two stops, then click "Build route".');
+});
+
+clearTripBtn.addEventListener("click", async () => {
+  const t = activeTrip();
+  if (!t) return;
+  t.stops = [];
+  await saveTrips(trips);
+  renderTrip();
+  renderLibrary();
   resetRoutePanel('Add at least two stops, then click "Build route".');
 });
 
 buildRouteBtn.addEventListener("click", buildRoute);
 
 async function init() {
-  [locations, trip, apiKey] = await Promise.all([getLocations(), getCurrentTrip(), getApiKey()]);
+  [locations, apiKey] = await Promise.all([getLocations(), getApiKey()]);
   apiKeyInput.value = apiKey;
-  renderLibrary();
-  renderTrip();
+  await reloadTrips();
 }
 
 init();

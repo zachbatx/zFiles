@@ -30,7 +30,30 @@
     </section>
 
     <section class="panel" id="trip-panel">
-      <h2>Trip stops</h2>
+      <h2>Trip</h2>
+      <div class="trip-bar">
+        <select id="trip-select"></select>
+        <button id="new-trip-btn" class="row-btn" title="New trip">＋ New</button>
+        <button id="edit-trip-btn" class="row-btn" title="Edit trip details">✎</button>
+        <button id="delete-trip-btn" class="row-btn" title="Delete trip">🗑</button>
+      </div>
+
+      <div id="trip-form" class="trip-form hidden">
+        <input type="text" id="tf-title" placeholder="Trip title" />
+        <input type="text" id="tf-summary" placeholder="Summary (optional)" />
+        <div class="tf-dates">
+          <label>Start <input type="date" id="tf-start" /></label>
+          <label>End <input type="date" id="tf-end" /></label>
+        </div>
+        <div class="trip-actions">
+          <button id="tf-cancel">Cancel</button>
+          <button id="tf-save" class="primary">Create trip</button>
+        </div>
+      </div>
+
+      <div id="trip-meta" class="trip-meta hidden"></div>
+
+      <h2 class="stops-heading">Stops</h2>
       <div id="trip-list" class="scroll-list"></div>
       <div class="trip-actions">
         <button id="clear-trip-btn">Clear stops</button>

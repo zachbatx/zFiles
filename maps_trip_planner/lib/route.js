@@ -3,6 +3,9 @@
 // them server-side, so no client-side geocoding is needed.
 
 function stopQuery(stop) {
+  // Prefer exact coordinates when we have them (map-picked stops), since
+  // that avoids Google mis-resolving an ambiguous place name.
+  if (stop.lat != null && stop.lng != null) return `${stop.lat},${stop.lng}`;
   return stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
 }
 
