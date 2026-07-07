@@ -27,7 +27,23 @@ Both paths land in the same store, keyed by (list name, place name), so
 re-scraping or re-importing just refreshes existing entries instead of
 duplicating them.
 
-## Planning a trip
+## Overlay on Google Maps
+
+When you're on `google.com/maps`, a floating **Trip Planner** panel appears in
+the top-right corner (drag its header to move it, click **–** to collapse). It
+mirrors the planner without leaving the map:
+
+- **Scrape saved list on this page** — same live scrape as the popup, one click.
+- Search your saved places, add them as stops, reorder, and **Show route on
+  map** — which loads the route directly onto Google's *real* map by navigating
+  the tab to Google's own `/maps/dir/` directions URL. (This is deliberately
+  done through the documented URL scheme rather than by manipulating Google's
+  internal DOM, so it doesn't break when Google reshuffles their UI.)
+
+The panel and the popup/planner tab all read and write the same storage, so a
+trip you build in one shows up in the others.
+
+## Planning a trip (popup + full tab)
 
 Click **Open Trip Planner** in the popup. Search/select saved places on the
 left, add them to the trip in the middle, reorder with the ↑/↓ buttons, then
