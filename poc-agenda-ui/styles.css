@@ -1,0 +1,343 @@
+/* Trip Planner — Stops & Agenda redesign POC
+   Goals this stylesheet demonstrates:
+   1. Stop titles + details get the FULL card width (never squeezed by icons).
+   2. Row actions (locate / edit / remove) live in a kebab menu that reveals on
+      demand, so they never compete with the title for space.
+   3. Day-trip agenda sub-items render as a readable timeline with explicit,
+      12-hour AM/PM times.
+   4. A "Rearrange" mode swaps the reading UI for drag handles + up/down. */
+
+:root {
+  --bg-a: #eef5f0;
+  --bg-b: #e3eef7;
+  --panel: #ffffff;
+  --panel-2: #f4f7fa;
+  --ink: #16202a;
+  --ink-soft: #5b6b78;
+  --ink-faint: #8593a0;
+  --line: #e2e8ee;
+  --line-strong: #cdd8e1;
+  --accent: #2563eb;
+  --accent-soft: #dbe6ff;
+  --accent-ink: #1d4ed8;
+  --danger: #d64545;
+  --danger-soft: #fbe3e3;
+  --chip: #eef1f4;
+  --shadow: 0 1px 2px rgba(20, 40, 60, .06), 0 6px 18px rgba(20, 40, 60, .05);
+  --radius: 14px;
+  --header-grad: linear-gradient(135deg, #2f6bd6, #2453b8);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(1200px 600px at 20% -10%, #f2f8f4, transparent),
+    linear-gradient(180deg, var(--bg-a), var(--bg-b));
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 24px 12px;
+}
+
+/* Preview frame — mimics the side panel width from the mockup. */
+.frame {
+  width: 100%;
+  max-width: 420px;
+}
+.panel {
+  background: linear-gradient(180deg, #f4faf6, #eef4f9);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(20, 40, 60, .12);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 48px);
+}
+
+/* Title bar */
+.titlebar {
+  background: var(--header-grad);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 30px; height: 30px; display: grid; place-items: center;
+  background: rgba(255, 255, 255, .18); border-radius: 9px; font-size: 16px;
+}
+.brand h1 { font-size: 18px; margin: 0; font-weight: 700; letter-spacing: .2px; }
+.titlebar-btns { display: flex; gap: 8px; }
+.round-btn {
+  width: 30px; height: 30px; border-radius: 50%; border: none;
+  background: rgba(255, 255, 255, .18); color: #fff; cursor: pointer; font-size: 14px;
+}
+.round-btn:hover { background: rgba(255, 255, 255, .3); }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 6px; padding: 12px 12px 4px;
+}
+.tab {
+  flex: 1; border: none; background: transparent; cursor: pointer;
+  padding: 11px 8px; border-radius: 11px; font-size: 14px; font-weight: 600;
+  color: var(--ink-soft); display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.tab:hover { background: rgba(255, 255, 255, .55); }
+.tab.is-active {
+  background: #fff; color: var(--accent-ink);
+  box-shadow: var(--shadow);
+}
+
+/* Scroll region */
+.scroll { overflow-y: auto; padding: 6px 12px 20px; }
+
+/* Generic block */
+.block { padding: 12px 4px; }
+.block-label {
+  font-size: 12px; letter-spacing: .09em; text-transform: uppercase;
+  color: var(--ink-faint); font-weight: 700; margin-bottom: 8px;
+}
+.block-label.big { font-size: 15px; letter-spacing: .04em; color: var(--ink-soft); }
+
+/* Trip selector */
+.trip-row { display: flex; gap: 8px; align-items: center; }
+.select-wrap { position: relative; flex: 1; }
+.select-wrap::after {
+  content: "▾"; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-faint); pointer-events: none; font-size: 12px;
+}
+select {
+  width: 100%; appearance: none; background: #fff; color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 11px;
+  padding: 12px 34px 12px 14px; font-size: 15px; font-weight: 600; cursor: pointer;
+}
+.icon-btn {
+  width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line-strong);
+  background: #fff; cursor: pointer; font-size: 16px; color: var(--ink-soft);
+  display: grid; place-items: center; flex: 0 0 auto;
+}
+.icon-btn:hover { background: var(--panel-2); color: var(--ink); }
+.icon-btn.danger:hover { background: var(--danger-soft); color: var(--danger); border-color: #f3caca; }
+
+.trip-card {
+  margin-top: 12px; background: linear-gradient(135deg, #eaf3ec, #e6eef8);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px;
+}
+.trip-card-name { font-size: 18px; font-weight: 700; }
+.trip-card-dates { margin-top: 4px; color: var(--ink-soft); font-size: 14px; font-variant-numeric: tabular-nums; }
+.trip-card-dates .arrow { color: var(--accent); font-weight: 700; margin: 0 4px; }
+
+/* Disclosure */
+.disclosure {
+  background: none; border: none; cursor: pointer; padding: 4px 0;
+  font-size: 12px; letter-spacing: .09em; text-transform: uppercase; font-weight: 700;
+  color: var(--ink-faint); display: flex; align-items: center; gap: 8px;
+}
+.disclosure-caret { display: inline-block; transition: transform .15s; }
+
+/* Stops header with the two view toggles */
+.stops-head {
+  display: flex; align-items: center; justify-content: space-between;
+  position: sticky; top: -6px; z-index: 5;
+  background: linear-gradient(180deg, #f2f8f4 70%, rgba(242, 248, 244, 0));
+  padding-bottom: 12px;
+}
+.view-controls { display: flex; gap: 14px; align-items: center; }
+.toggle { display: flex; align-items: center; gap: 7px; cursor: pointer; user-select: none; }
+.toggle-text { font-size: 13px; font-weight: 600; color: var(--ink-soft); }
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+.switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.track {
+  position: absolute; inset: 0; background: var(--line-strong); border-radius: 999px;
+  transition: background .15s;
+}
+.track::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px;
+  background: #fff; border-radius: 50%; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25);
+}
+.switch input:checked + .track { background: var(--accent); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Rearrange hint */
+.rearrange-hint {
+  display: flex; gap: 8px; align-items: flex-start;
+  background: var(--accent-soft); color: var(--accent-ink);
+  border: 1px solid #c7d8fb; border-radius: 12px; padding: 10px 12px;
+  font-size: 12.5px; line-height: 1.4; margin: 0 4px 12px;
+}
+.rearrange-hint[hidden] { display: none; }
+.grip-hint { font-size: 14px; line-height: 1; }
+
+/* ---------- STOPS LIST ---------- */
+.stops { list-style: none; margin: 0; padding: 0; }
+
+/* Leg chip that connects two stops (distance + drive time) */
+.leg {
+  display: flex; align-items: center; gap: 8px;
+  margin: 2px 0 2px 30px; padding-left: 14px;
+  position: relative;
+}
+.leg::before {
+  content: ""; position: absolute; left: 15px; top: -4px; bottom: -4px;
+  width: 2px; background: repeating-linear-gradient(var(--line-strong) 0 4px, transparent 4px 8px);
+}
+.leg-chip {
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 999px;
+  padding: 5px 12px; font-size: 12.5px; color: var(--ink-soft); font-weight: 600;
+  display: inline-flex; align-items: center; gap: 6px; box-shadow: var(--shadow);
+  font-variant-numeric: tabular-nums;
+}
+.leg-chip .car { font-size: 13px; }
+
+/* The stop card */
+.stop {
+  position: relative;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow); margin: 6px 0; padding: 14px 14px 14px 46px;
+  transition: box-shadow .15s, border-color .15s, transform .05s;
+}
+/* number badge, pinned so it never eats title width */
+.stop-num {
+  position: absolute; left: 12px; top: 14px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--accent-soft); color: var(--accent-ink);
+  font-size: 13px; font-weight: 700; display: grid; place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Title row: title claims all remaining width; kebab is a fixed 32px column */
+.stop-head { display: flex; align-items: flex-start; gap: 8px; }
+.stop-title-wrap { flex: 1; min-width: 0; }
+.stop-title { font-size: 16px; font-weight: 700; line-height: 1.25; }
+.stop-sub { margin-top: 3px; font-size: 13px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.stop-sub .dot { margin: 0 6px; color: var(--line-strong); }
+
+/* Kebab + popover menu */
+.kebab {
+  flex: 0 0 auto; width: 32px; height: 32px; border-radius: 9px; border: 1px solid transparent;
+  background: transparent; cursor: pointer; color: var(--ink-faint); font-size: 18px; line-height: 1;
+}
+.kebab:hover { background: var(--panel-2); color: var(--ink); border-color: var(--line); }
+.menu {
+  position: absolute; right: 12px; top: 46px; z-index: 20;
+  background: #fff; border: 1px solid var(--line-strong); border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(20, 40, 60, .18); padding: 6px; min-width: 172px;
+}
+.menu[hidden] { display: none; }
+.menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer; padding: 9px 10px; border-radius: 8px;
+  font-size: 14px; color: var(--ink); font-weight: 500;
+}
+.menu button:hover { background: var(--panel-2); }
+.menu button.danger { color: var(--danger); }
+.menu button.danger:hover { background: var(--danger-soft); }
+.menu .mi { width: 18px; text-align: center; }
+
+/* ---------- AGENDA TIMELINE (day-trip sub-items) ---------- */
+.agenda {
+  margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--line-strong);
+  position: relative;
+}
+.agenda-label {
+  font-size: 11px; letter-spacing: .08em; text-transform: uppercase; font-weight: 700;
+  color: var(--accent-ink); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.agenda-list { position: relative; margin: 0; padding: 0; list-style: none; }
+/* vertical spine */
+.agenda-list::before {
+  content: ""; position: absolute; left: 58px; top: 6px; bottom: 6px; width: 2px;
+  background: var(--accent-soft);
+}
+.ag-item {
+  display: grid; grid-template-columns: 54px 16px 1fr; align-items: baseline;
+  gap: 0; padding: 5px 0;
+}
+.ag-time {
+  font-size: 12.5px; font-weight: 700; color: var(--accent-ink);
+  font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap;
+}
+.ag-time .ampm { font-size: 10px; font-weight: 700; color: var(--ink-faint); margin-left: 2px; }
+.ag-node { position: relative; }
+.ag-node::before {
+  content: ""; position: absolute; left: 1px; top: 4px; width: 9px; height: 9px;
+  border-radius: 50%; background: #fff; border: 2.5px solid var(--accent);
+}
+.ag-body { padding-left: 6px; }
+.ag-title { font-size: 14px; font-weight: 600; line-height: 1.25; }
+.ag-place { font-size: 12px; color: var(--ink-soft); margin-top: 1px; }
+.agenda-add {
+  margin-top: 6px; margin-left: 70px; background: none; border: 1px dashed var(--line-strong);
+  color: var(--ink-soft); border-radius: 8px; padding: 5px 10px; font-size: 12.5px; cursor: pointer;
+}
+.agenda-add:hover { border-color: var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+
+/* ---------- COMPACT (Detailed View OFF) ---------- */
+.compact .stop { padding-top: 12px; padding-bottom: 12px; }
+.compact .stop-sub { display: none; }
+.compact .agenda { display: none; }
+.compact .agenda-count { display: inline-flex; }
+.agenda-count {
+  display: none; align-items: center; gap: 5px; margin-top: 4px;
+  font-size: 12px; font-weight: 600; color: var(--accent-ink);
+}
+
+/* ---------- REARRANGE MODE ---------- */
+.reordering .stop { padding-left: 46px; cursor: default; }
+.reordering .kebab { display: none; }
+.reordering .agenda { display: none; }
+.reordering .stop-sub { color: var(--ink-faint); }
+
+.grip {
+  display: none; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 26px; height: 30px; cursor: grab; color: var(--ink-faint);
+  align-items: center; justify-content: center; touch-action: none;
+}
+.grip svg { width: 14px; height: 20px; }
+.reordering .grip { display: flex; }
+.reordering .stop-num {
+  left: auto; right: 88px; top: 50%; transform: translateY(-50%);
+}
+.reorder-btns { display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%); gap: 4px; }
+.reordering .reorder-btns { display: flex; }
+.reorder-btns button {
+  width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line-strong);
+  background: #fff; cursor: pointer; color: var(--ink-soft); font-size: 15px;
+}
+.reorder-btns button:hover:not(:disabled) { background: var(--accent-soft); color: var(--accent-ink); border-color: #bcd0f7; }
+.reorder-btns button:disabled { opacity: .35; cursor: not-allowed; }
+
+.reordering .stop { padding-right: 128px; }
+.reordering .agenda-count { display: none; }
+
+/* drag visuals */
+.stop.dragging { opacity: .4; border-style: dashed; }
+.stop.drop-target { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.reordering .leg { visibility: hidden; height: 0; margin: 0; overflow: hidden; }
+
+/* Focus visibility */
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- Dark mode ---------- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-a: #10161c; --bg-b: #141b22; --panel: #1c242c; --panel-2: #232c35;
+    --ink: #e8eef3; --ink-soft: #9fb0bd; --ink-faint: #77879a;
+    --line: #2c363f; --line-strong: #3a4753; --chip: #232c35;
+    --accent-soft: #1e3357; --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 18px rgba(0,0,0,.3);
+  }
+  body { background: linear-gradient(180deg, #10161c, #0c1116); }
+  .panel { background: linear-gradient(180deg, #182029, #131a21); }
+  .tab.is-active { background: #232c35; color: #9dc0ff; }
+  .leg-chip, select, .icon-btn, .stop, .menu, .reorder-btns button { background: var(--panel); }
+  .trip-card { background: linear-gradient(135deg, #1d2730, #1a2431); }
+  .stops-head { background: linear-gradient(180deg, #131a21 70%, rgba(19,26,33,0)); }
+}

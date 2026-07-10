@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trip Planner — Stops &amp; Agenda UI (POC)</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Phone-frame just to preview the panel at its real width. Remove for full width. -->
+  <div class="frame">
+    <div class="panel">
+
+      <!-- Title bar -->
+      <header class="titlebar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">🧭</span>
+          <h1>Trip Planner</h1>
+        </div>
+        <div class="titlebar-btns">
+          <button class="round-btn" title="Settings" aria-label="Settings">✕</button>
+          <button class="round-btn" title="Minimize" aria-label="Minimize">—</button>
+        </div>
+      </header>
+
+      <!-- Tabs -->
+      <nav class="tabs" role="tablist">
+        <button class="tab is-active" role="tab" aria-selected="true">🗺️ Stops</button>
+        <button class="tab" role="tab" aria-selected="false">🔖 Library</button>
+        <button class="tab" role="tab" aria-selected="false">📍 Selection</button>
+      </nav>
+
+      <div class="scroll">
+        <!-- Trip selector -->
+        <section class="block">
+          <div class="block-label">Trip</div>
+          <div class="trip-row">
+            <div class="select-wrap">
+              <select id="trip-select" aria-label="Select trip">
+                <option>2026 Colorado Trip</option>
+                <option>2025 Florida Loop</option>
+              </select>
+            </div>
+            <button class="icon-btn" title="New trip" aria-label="New trip">＋</button>
+            <button class="icon-btn" title="Rename trip" aria-label="Rename trip">✎</button>
+            <button class="icon-btn danger" title="Delete trip" aria-label="Delete trip">🗑</button>
+          </div>
+
+          <div class="trip-card">
+            <div class="trip-card-name">2026 Colorado Trip</div>
+            <div class="trip-card-dates">2026-08-21 <span class="arrow">→</span> 2026-09-05</div>
+          </div>
+        </section>
+
+        <!-- Preferences (collapsed) -->
+        <section class="block">
+          <button class="disclosure" aria-expanded="false">
+            <span class="disclosure-caret">▸</span> Preferences
+          </button>
+        </section>
+
+        <!-- Stops header + view controls -->
+        <section class="block stops-head">
+          <div class="block-label big">Stops</div>
+          <div class="view-controls">
+            <label class="toggle">
+              <span class="toggle-text">Detailed</span>
+              <span class="switch"><input type="checkbox" id="detailed-toggle" checked /><span class="track"></span></span>
+            </label>
+            <label class="toggle">
+              <span class="toggle-text">Rearrange</span>
+              <span class="switch"><input type="checkbox" id="rearrange-toggle" /><span class="track"></span></span>
+            </label>
+          </div>
+        </section>
+
+        <!-- Rearrange hint banner -->
+        <div id="rearrange-hint" class="rearrange-hint" hidden>
+          <span class="grip-hint" aria-hidden="true">⣿</span>
+          Drag the handle to reorder, or use the ↑ ↓ buttons. Editing is paused while rearranging.
+        </div>
+
+        <!-- Stops list -->
+        <ol id="stops" class="stops"></ol>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
