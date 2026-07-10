@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Maps Trip Planner",
+  "version": "1.4.1",
+  "description": "Turn your Google Maps saved places into routed trips, with an overlay panel that reacts to places you click on the map.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["storage", "scripting", "activeTab", "tabs"],
+  "host_permissions": ["https://www.google.com/maps/*"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/maps/*"],
+      "js": ["content/overlay.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["lib/storage.js", "lib/route.js", "lib/scraper.js"],
+      "matches": ["https://www.google.com/*"]
+    }
+  ]
+}
