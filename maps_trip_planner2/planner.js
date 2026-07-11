@@ -75,9 +75,36 @@ let editingStop = null;
 let libCollapsed = false;
 const collapsedGroups = new Set();
 let mapSelection = null;
+let reorderMode = false; // "Rearrange" toggle: drag/up-down instead of kebab actions
 
 const norm = (s) => (s || "").trim().toLowerCase();
 const activeTrip = () => trips.find((t) => t.id === activeId) || null;
+
+// Format a 24h "HH:MM" (from <input type=time>) as "8:00 AM" / "12:30 PM".
+function fmt12h(t) {
+  if (!t) return "";
+  const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return String(t);
+  let h = parseInt(m[1], 10);
+  const min = m[2];
+  const ap = h >= 12 ? "PM" : "AM";
+  h = h % 12; if (h === 0) h = 12;
+  return h + ":" + min + " " + ap;
+}
+
+// Close any open kebab menu in the stops list.
+function closeStopMenus() {
+  document.querySelectorAll(".stop-menu.open").forEach((m) => m.classList.remove("open"));
+}
+
+// Open this stop's location in Google Maps (new tab) — kebab "Show on map".
+function openStopLocation(stop) {
+  const query = stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
+  const url = (stop.lat != null && stop.lng != null && stop.lat !== "" && stop.lng !== "")
+    ? `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${stop.lat},${stop.lng},16z`
+    : `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+  window.open(url, "_blank", "noopener");
+}
 
 function inActiveTrip(name) {
   const t = activeTrip();
@@ -287,44 +314,46 @@ function renderTrip() {
     }
     const row = document.createElement("div");
     row.className = "stop-row";
-    row.setAttribute("draggable", "true");
+    if (reorderMode) row.classList.add("reordering");
 
-    row.addEventListener("dragstart", (e) => {
-      e.dataTransfer.setData("text/plain", String(i));
-      row.classList.add("dragging");
-    });
-    row.addEventListener("dragend", () => {
-      row.classList.remove("dragging");
-    });
-    row.addEventListener("dragover", (e) => {
-      e.preventDefault();
-      row.classList.add("dragover");
-    });
-    row.addEventListener("dragleave", () => {
-      row.classList.remove("dragover");
-    });
-    row.addEventListener("drop", async (e) => {
-      e.preventDefault();
-      row.classList.remove("dragover");
-      const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-      const toIndex = i;
-      if (fromIndex !== toIndex && !isNaN(fromIndex)) {
-        const moved = t.stops.splice(fromIndex, 1)[0];
-        t.stops.splice(toIndex, 0, moved);
-        await saveTrips(trips);
-        renderTrip();
-        if (t.stops.length >= 2) {
-          buildRoute();
+    // Dragging is only enabled in Rearrange mode so normal reading/clicking
+    // (expand, text selection) isn't hijacked by the drag surface.
+    if (reorderMode) {
+      row.setAttribute("draggable", "true");
+      row.addEventListener("dragstart", (e) => {
+        e.dataTransfer.setData("text/plain", String(i));
+        row.classList.add("dragging");
+      });
+      row.addEventListener("dragend", () => {
+        row.classList.remove("dragging");
+      });
+      row.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        row.classList.add("dragover");
+      });
+      row.addEventListener("dragleave", () => {
+        row.classList.remove("dragover");
+      });
+      row.addEventListener("drop", async (e) => {
+        e.preventDefault();
+        row.classList.remove("dragover");
+        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+        const toIndex = i;
+        if (fromIndex !== toIndex && !isNaN(fromIndex)) {
+          const moved = t.stops.splice(fromIndex, 1)[0];
+          t.stops.splice(toIndex, 0, moved);
+          await saveTrips(trips);
+          renderTrip();
+          if (t.stops.length >= 2) {
+            buildRoute();
+          }
+          refreshItineraryIfOpen();
         }
-        refreshItineraryIfOpen();
-      }
-    });
+      });
+    }
 
     const handle = document.createElement("div");
     handle.className = "drag-handle";
-    handle.style.display = "flex";
-    handle.style.alignItems = "center";
-    handle.style.marginRight = "6px";
     handle.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="cursor: grab; color: var(--md-sys-color-outline);"><circle cx="9" cy="5" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="9" cy="19" r="1.5"></circle><circle cx="15" cy="5" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="15" cy="19" r="1.5"></circle></svg>`;
 
     const index = document.createElement("div");
@@ -333,19 +362,20 @@ function renderTrip() {
 
     const info = document.createElement("div");
     info.className = "stop-name";
-    info.style.cursor = "pointer";
+    info.style.cursor = reorderMode ? "default" : "pointer";
     let dateStr = stop.date || "";
     if (stop.date && stop.endDate && stop.endDate !== stop.date) {
       dateStr = `${stop.date} → ${stop.endDate}`;
     }
-    const sched = [dateStr, stop.time].filter(Boolean).join(" ");
+    const sched = [dateStr, stop.time ? fmt12h(stop.time) : ""].filter(Boolean).join(" · ");
     info.innerHTML =
       `<div>${escapeHtml(stop.name)}</div>` +
       (sched || stop.notes
         ? `<div class="stop-sub">${escapeHtml([sched, stop.notes].filter(Boolean).join(" · "))}</div>`
         : "");
-    info.title = "Click to expand/collapse details";
+    info.title = reorderMode ? "" : "Click to expand/collapse details";
     info.addEventListener("click", () => {
+      if (reorderMode) return; // reading actions are paused while rearranging
       if (expandedStops.has(i)) {
         expandedStops.delete(i);
       } else {
@@ -357,41 +387,65 @@ function renderTrip() {
     const controls = document.createElement("div");
     controls.className = "stop-controls";
 
+    // --- Rearrange controls (up/down) — shown only in Rearrange mode ---
     const upBtn = document.createElement("button");
     upBtn.className = "row-btn";
+    upBtn.title = "Move up";
     upBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
     upBtn.disabled = i === 0;
-    upBtn.addEventListener("click", () => moveStop(i, -1));
+    upBtn.addEventListener("click", (e) => { e.stopPropagation(); moveStop(i, -1); });
 
     const downBtn = document.createElement("button");
     downBtn.className = "row-btn";
+    downBtn.title = "Move down";
     downBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
     downBtn.disabled = i === t.stops.length - 1;
-    downBtn.addEventListener("click", () => moveStop(i, 1));
+    downBtn.addEventListener("click", (e) => { e.stopPropagation(); moveStop(i, 1); });
 
-    const editBtn = document.createElement("button");
-    editBtn.className = "row-btn";
-    editBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-    editBtn.title = "Edit stop";
-    editBtn.addEventListener("click", () => { editingStop = i; renderTrip(); });
+    const reorderBtns = document.createElement("div");
+    reorderBtns.className = "reorder-btns";
+    reorderBtns.append(upBtn, downBtn);
 
-    const removeBtn = document.createElement("button");
-    removeBtn.className = "row-btn";
-    removeBtn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-    removeBtn.addEventListener("click", () => removeStop(i));
+    // --- Kebab (⋯) actions menu — shown only in reading mode ---
+    // Keeps map/edit/remove out of the title row so the name gets full width.
+    const kebab = document.createElement("button");
+    kebab.className = "row-btn kebab";
+    kebab.title = "Stop actions";
+    kebab.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>`;
+    const menu = document.createElement("div");
+    menu.className = "stop-menu";
+    menu.innerHTML =
+      `<button class="menu-locate"><svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor"><path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Z"></path></svg> Show on map</button>` +
+      `<button class="menu-edit"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit stop</button>` +
+      `<button class="menu-remove danger"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Remove stop</button>`;
+    kebab.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.contains("open");
+      closeStopMenus();
+      if (!isOpen) menu.classList.add("open");
+    });
+    menu.querySelector(".menu-locate").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); openStopLocation(stop); });
+    menu.querySelector(".menu-edit").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); editingStop = i; renderTrip(); });
+    menu.querySelector(".menu-remove").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); removeStop(i); });
 
-    controls.append(upBtn, downBtn, editBtn, removeBtn);
-    
+    if (reorderMode) {
+      controls.append(reorderBtns);
+    } else {
+      controls.append(kebab);
+    }
+
     const mainEl = document.createElement("div");
     mainEl.className = "stop-row-main";
-    mainEl.style.display = "flex";
-    mainEl.style.alignItems = "center";
-    mainEl.style.width = "100%";
-    mainEl.style.gap = "10px";
-    mainEl.append(handle, index, info, controls);
-    row.append(mainEl);
+    if (reorderMode) {
+      mainEl.append(handle, index, info, controls);
+    } else {
+      mainEl.append(index, info, controls);
+    }
+    row.append(mainEl, menu);
 
-    if (expandedStops.has(i)) {
+    // Keep rows compact while rearranging — expanded agenda editors would
+    // make the list hard to drag/scan. They re-open when Rearrange is off.
+    if (expandedStops.has(i) && !reorderMode) {
       row.classList.add("expanded");
       
       const expandedDiv = document.createElement("div");
@@ -422,7 +476,7 @@ function renderTrip() {
       } else {
         html += `<div class="agenda-items" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px;">`;
         agenda.forEach((item, itemIdx) => {
-          const timeText = [item.startTime, item.endTime].filter(Boolean).join(" - ");
+          const timeText = [item.startTime, item.endTime].filter(Boolean).map(fmt12h).join(" – ");
           const locText = item.location && item.location.name ? `@ ${item.location.name}` : "";
           html += `
             <div class="agenda-item-row" style="display: flex; align-items: flex-start; justify-content: space-between; background: var(--md-sys-color-surface-container); border: 1px solid var(--md-sys-color-outline-variant); border-radius: 8px; padding: 6px 10px; gap: 8px;">
@@ -1714,7 +1768,7 @@ async function renderItinerary() {
     if (stop.agenda && stop.agenda.length > 0) {
       agendaHtml += `<div class="itin-agenda" style="margin-top: 8px; border-left: 2px solid var(--md-sys-color-primary-container); padding-left: 10px; display: flex; flex-direction: column; gap: 4px;">`;
       stop.agenda.forEach(item => {
-        const itemTime = [item.startTime, item.endTime].filter(Boolean).join(" - ");
+        const itemTime = [item.startTime, item.endTime].filter(Boolean).map(fmt12h).join(" – ");
         const locPart = item.location && item.location.name ? ` @ ${item.location.name}` : "";
         agendaHtml += `
           <div style="font-size: 12px; color: var(--md-sys-color-on-surface-variant); line-height: 1.4;">
@@ -1775,6 +1829,17 @@ libraryToggle.addEventListener("click", () => {
 tabStops.addEventListener("click", () => switchDashboardTab("stops"));
 tabCalendar.addEventListener("click", () => switchDashboardTab("calendar"));
 tabItinerary.addEventListener("click", () => switchDashboardTab("itinerary"));
+
+const reorderToggle = document.getElementById("reorder-toggle");
+if (reorderToggle) {
+  reorderToggle.addEventListener("change", (e) => {
+    reorderMode = e.target.checked;
+    if (reorderMode) closeStopMenus();
+    renderTrip();
+  });
+}
+// Click anywhere else closes an open stop kebab menu.
+document.addEventListener("click", () => closeStopMenus());
 calViewType.addEventListener("change", renderCalendar);
 calDetailLevel.addEventListener("change", renderCalendar);
 closeCalendarOverlay.addEventListener("click", () => switchDashboardTab("stops"));

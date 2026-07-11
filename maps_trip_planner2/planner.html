@@ -93,6 +93,13 @@
 
       <!-- Sub-pane 1: Stops List -->
       <div id="subpane-stops">
+        <div class="stops-toolbar">
+          <label class="m3-switch" title="Reorder stops by dragging the handle or using the arrows">
+            Rearrange
+            <input type="checkbox" id="reorder-toggle" />
+            <span class="m3-switch-track"><span class="m3-switch-thumb"></span></span>
+          </label>
+        </div>
         <div id="trip-list" class="scroll-list" style="max-height: 480px; overflow-y: auto;"></div>
         <div class="trip-actions" style="margin-top: 12px;">
           <button id="clear-trip-btn" class="btn btn-tonal"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><line x1="10" y1="6" x2="21" y2="6"></line><line x1="10" y1="12" x2="21" y2="12"></line><line x1="10" y1="18" x2="21" y2="18"></line><path d="M3 6h3v6H3z"></path></svg> Clear stops</button>

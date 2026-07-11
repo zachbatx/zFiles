@@ -500,6 +500,49 @@ main {
   background-color: transparent;
 }
 
+/* ---- Redesigned stop rows: full-width title, kebab actions, rearrange ---- */
+/* Stack the main row and the expanded details vertically (was flex-wrap). */
+.stop-row { position: relative; flex-direction: column; align-items: stretch; gap: 0; }
+.stop-row-main { display: flex; align-items: flex-start; gap: 10px; width: 100%; }
+/* Title claims the full width and wraps instead of truncating. */
+.stop-name { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
+.stop-index { margin-top: 2px; }
+.stop-controls { align-items: flex-start; }
+
+/* Kebab (⋯) actions menu — reading mode only, so icons never squeeze the title */
+.stop-controls .row-btn.kebab { margin-left: auto; }
+.stop-menu {
+  position: absolute; right: 8px; top: 44px; z-index: 40;
+  background: var(--md-sys-color-surface, #fff);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 12px; box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  padding: 6px; min-width: 184px; display: none; flex-direction: column;
+}
+.stop-menu.open { display: flex; }
+.stop-menu button {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer; padding: 9px 10px; border-radius: 8px;
+  font-size: 13px; color: var(--md-sys-color-on-surface); font-family: inherit; font-weight: 500;
+}
+.stop-menu button:hover { background: var(--md-sys-color-surface-container-high); }
+.stop-menu button.danger { color: var(--md-sys-color-error, #b3261e); }
+.stop-menu button.danger:hover { background: var(--md-sys-color-error-container, #fbe3e3); }
+.stop-menu svg { flex-shrink: 0; }
+
+/* Rearrange mode: drag handle + up/down, no kebab */
+.stop-row .drag-handle { display: none; align-items: center; margin-right: 2px; }
+.stop-row.reordering .drag-handle { display: flex; }
+.reorder-btns { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* Rearrange toggle bar + Material-style switch */
+.stops-toolbar { display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
+.m3-switch { position: relative; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; font-size: 12px; font-weight: 600; color: var(--md-sys-color-on-surface-variant); }
+.m3-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.m3-switch-track { position: relative; width: 34px; height: 18px; background: var(--md-sys-color-surface-container-highest, #dadce0); border: 1.5px solid var(--md-sys-color-outline-variant); border-radius: 10px; transition: background-color 0.2s, border-color 0.2s; box-sizing: border-box; display: inline-block; }
+.m3-switch-thumb { position: absolute; top: 50%; left: 2px; transform: translateY(-50%); width: 10px; height: 10px; background: var(--md-sys-color-outline); border-radius: 50%; transition: left 0.2s, width 0.2s, height 0.2s, background-color 0.2s; }
+.m3-switch input:checked + .m3-switch-track { background: var(--md-sys-color-primary); border-color: var(--md-sys-color-primary); }
+.m3-switch input:checked + .m3-switch-track .m3-switch-thumb { left: 18px; width: 12px; height: 12px; background: #fff; }
+
 /* Stop Editor inside active trip stops list */
 .stop-editor {
   padding: 12px;
