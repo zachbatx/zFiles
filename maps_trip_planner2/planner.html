@@ -11,7 +11,7 @@
 <body>
   <header>
     <h1>Trip Dashboard</h1>
-    <button id="settings-toggle" class="btn btn-outlined"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> API key settings</button>
+    <button id="settings-toggle" class="btn btn-outlined"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:middle; margin-right:4px;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> Settings &amp; Backup</button>
   </header>
 
   <section id="settings-panel" class="settings hidden">
@@ -25,6 +25,30 @@
       restricted to your extension in Google Cloud Console. Without a key, you can still build a route and
       open it directly in Google Maps.
     </p>
+
+    <hr style="border: none; border-top: 1px solid var(--md-sys-color-outline-variant); margin: 16px 0;" />
+
+    <label style="margin-bottom: 8px;">Data &amp; Backup</label>
+    <p class="hint" style="margin-top: 0;">
+      Your trips live in the browser and are wiped if the extension is removed. Keep a copy in a real file so
+      you never lose them: <strong>link a backup file</strong> (auto-saves on every change) and/or export a
+      snapshot you can re-import.
+    </p>
+
+    <div id="backup-status" class="backup-status" role="status">Backup file: <strong>not linked</strong></div>
+
+    <div class="backup-actions">
+      <button id="link-backup-btn" class="btn btn-primary">Link backup file</button>
+      <button id="reconnect-backup-btn" class="btn btn-tonal hidden">Reconnect file</button>
+      <button id="restore-backup-btn" class="btn btn-tonal">Restore from file…</button>
+      <button id="unlink-backup-btn" class="btn btn-tonal hidden">Unlink</button>
+    </div>
+    <div class="backup-actions" style="margin-top: 8px;">
+      <button id="export-trips-btn" class="btn btn-outlined">Export snapshot (.json)</button>
+      <button id="import-trips-btn" class="btn btn-outlined">Import snapshot…</button>
+      <input type="file" id="import-trips-input" accept=".json,application/json" class="hidden" />
+    </div>
+    <div id="restore-banner" class="restore-banner hidden"></div>
   </section>
 
   <main>

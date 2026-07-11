@@ -14,6 +14,7 @@ import {
   updateStopInTrip,
 } from "./lib/storage.js";
 import { buildDirectionsUrl, buildEmbedUrl, buildFreeEmbedUrl, fetchDirectionsLegs, getHaversineDistance } from "./lib/route.js";
+import * as backup from "./lib/backup.js";
 
 const libraryList = document.getElementById("library-list");
 const tripList = document.getElementById("trip-list");
@@ -1938,6 +1939,230 @@ if (toggleMapExpandBtn) {
   });
 }
 
+// ---- Data & Backup --------------------------------------------------------
+const backupStatusEl = document.getElementById("backup-status");
+const linkBackupBtn = document.getElementById("link-backup-btn");
+const reconnectBackupBtn = document.getElementById("reconnect-backup-btn");
+const restoreBackupBtn = document.getElementById("restore-backup-btn");
+const unlinkBackupBtn = document.getElementById("unlink-backup-btn");
+const exportTripsBtn = document.getElementById("export-trips-btn");
+const importTripsBtn = document.getElementById("import-trips-btn");
+const importTripsInput = document.getElementById("import-trips-input");
+const restoreBanner = document.getElementById("restore-banner");
+
+let backupHandle = null;
+let backupNeedsPermission = false;
+let backupWriteTimer = null;
+
+async function currentStateForBackup() {
+  const s = await chrome.storage.local.get(["trips", "activeTripId", "locations"]);
+  return { trips: s.trips || [], activeTripId: s.activeTripId || "", locations: s.locations || [] };
+}
+
+async function applyImported(data) {
+  const patch = {
+    trips: data.trips || [],
+    activeTripId: data.activeTripId || (data.trips && data.trips[0] && data.trips[0].id) || "",
+  };
+  if (data.locations && data.locations.length) patch.locations = data.locations;
+  await chrome.storage.local.set(patch);
+  await reloadTrips();
+  scheduleBackupWrite();
+}
+
+function fmtNow() {
+  return new Date().toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+}
+
+function setBackupStatus(kind, extra) {
+  if (!backupStatusEl) return;
+  backupStatusEl.classList.remove("linked", "warn");
+  const name = backupHandle ? (backupHandle.name || "backup.json") : null;
+  if (kind === "unlinked") {
+    backupStatusEl.innerHTML = "Backup file: <strong>not linked</strong>";
+  } else if (kind === "needs-permission") {
+    backupStatusEl.classList.add("warn");
+    backupStatusEl.innerHTML = `Backup file <strong>${escapeHtml(name)}</strong> needs to be re-approved for this session.`;
+  } else if (kind === "saved") {
+    backupStatusEl.classList.add("linked");
+    backupStatusEl.innerHTML = `Backup: <strong>${escapeHtml(name)}</strong> · saved ${escapeHtml(extra || fmtNow())}`;
+  } else if (kind === "linked") {
+    backupStatusEl.classList.add("linked");
+    backupStatusEl.innerHTML = `Backup: <strong>${escapeHtml(name)}</strong> · linked`;
+  } else if (kind === "error") {
+    backupStatusEl.classList.add("warn");
+    backupStatusEl.innerHTML = `Backup error: ${escapeHtml(extra || "write failed")}`;
+  }
+}
+
+function updateBackupUi() {
+  const linked = !!backupHandle;
+  linkBackupBtn.classList.toggle("hidden", linked);
+  unlinkBackupBtn.classList.toggle("hidden", !linked);
+  reconnectBackupBtn.classList.toggle("hidden", !(linked && backupNeedsPermission));
+  if (!backup.isSupported()) {
+    linkBackupBtn.disabled = true;
+    linkBackupBtn.title = "This browser can't link a file — use Export/Import instead.";
+  }
+}
+
+function scheduleBackupWrite() {
+  if (!backupHandle) return;
+  clearTimeout(backupWriteTimer);
+  backupWriteTimer = setTimeout(doBackupWrite, 600);
+}
+
+async function doBackupWrite() {
+  if (!backupHandle) return;
+  try {
+    if (!(await backup.queryGranted(backupHandle, true))) {
+      backupNeedsPermission = true;
+      setBackupStatus("needs-permission");
+      updateBackupUi();
+      return;
+    }
+    backupNeedsPermission = false;
+    await backup.writeHandle(backupHandle, backup.serialize(await currentStateForBackup()));
+    setBackupStatus("saved");
+    updateBackupUi();
+  } catch (e) {
+    setBackupStatus("error", e.message);
+  }
+}
+
+async function linkBackupFile() {
+  if (!backup.isSupported()) {
+    alert("This browser can't link a file directly. Use Export snapshot / Import instead.");
+    return;
+  }
+  try {
+    const handle = await backup.pickSaveFile();
+    if (!(await backup.verifyPermission(handle, true))) return;
+    backupHandle = handle;
+    backupNeedsPermission = false;
+    await doBackupWrite();                          // write + update UI first
+    backup.saveHandle(handle).catch(() => {});      // persist for next session, best-effort
+  } catch (e) {
+    if (e.name !== "AbortError") alert("Couldn't link file: " + e.message);
+  }
+}
+
+async function reconnectBackupFile() {
+  if (!backupHandle) return;
+  try {
+    if (await backup.verifyPermission(backupHandle, true)) {
+      backupNeedsPermission = false;
+      await doBackupWrite();
+    }
+  } catch (e) {
+    if (e.name !== "AbortError") alert("Couldn't reconnect: " + e.message);
+  }
+}
+
+async function unlinkBackupFile() {
+  backupHandle = null;
+  backupNeedsPermission = false;
+  await backup.clearHandle();
+  setBackupStatus("unlinked");
+  updateBackupUi();
+}
+
+async function restoreFromFile() {
+  try {
+    let handle = backupHandle;
+    if (!handle) {
+      if (!backup.isSupported()) { importTripsInput.click(); return; }
+      handle = await backup.pickOpenFile();
+    }
+    if (!(await backup.verifyPermission(handle, false))) return;
+    const data = backup.parse(await backup.readHandle(handle));
+    if (!confirm(`Restore ${data.trips.length} trip(s) and ${data.locations.length} saved place(s)? This replaces the current data.`)) return;
+    await applyImported(data);
+    if (!backupHandle && backup.isSupported()) {
+      backupHandle = handle;
+      backup.saveHandle(handle).catch(() => {});
+    }
+    hideRestoreBanner();
+    setBackupStatus(backupHandle ? "linked" : "unlinked");
+    updateBackupUi();
+  } catch (e) {
+    if (e.name !== "AbortError") alert("Restore failed: " + e.message);
+  }
+}
+
+function exportSnapshot() {
+  currentStateForBackup().then((state) => {
+    const blob = new Blob([backup.serialize(state)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "maps-trip-planner-backup.json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+}
+
+async function importSnapshotFile(file) {
+  try {
+    const data = backup.parse(await file.text());
+    if (!confirm(`Import ${data.trips.length} trip(s) and ${data.locations.length} saved place(s)? This replaces the current data.`)) return;
+    await applyImported(data);
+    hideRestoreBanner();
+  } catch (e) {
+    alert("Import failed: " + e.message);
+  }
+}
+
+function showRestoreBanner(data) {
+  if (!restoreBanner) return;
+  restoreBanner.classList.remove("hidden");
+  restoreBanner.innerHTML =
+    `<span>Your linked backup file has <strong>${data.trips.length} trip(s)</strong> but this browser has none. Restore them?</span>` +
+    `<button class="btn btn-primary" id="do-restore-banner">Restore</button>` +
+    `<button class="btn btn-tonal" id="dismiss-restore-banner">Dismiss</button>`;
+  restoreBanner.querySelector("#do-restore-banner").addEventListener("click", restoreFromFile);
+  restoreBanner.querySelector("#dismiss-restore-banner").addEventListener("click", hideRestoreBanner);
+}
+function hideRestoreBanner() {
+  if (restoreBanner) { restoreBanner.classList.add("hidden"); restoreBanner.innerHTML = ""; }
+}
+
+linkBackupBtn.addEventListener("click", linkBackupFile);
+reconnectBackupBtn.addEventListener("click", reconnectBackupFile);
+restoreBackupBtn.addEventListener("click", restoreFromFile);
+unlinkBackupBtn.addEventListener("click", unlinkBackupFile);
+exportTripsBtn.addEventListener("click", exportSnapshot);
+importTripsBtn.addEventListener("click", () => importTripsInput.click());
+importTripsInput.addEventListener("change", () => {
+  const f = importTripsInput.files[0];
+  importTripsInput.value = "";
+  if (f) importSnapshotFile(f);
+});
+
+async function initBackup() {
+  setBackupStatus("unlinked");
+  updateBackupUi();
+  if (!backup.isSupported()) return;
+  try {
+    backupHandle = await backup.getSavedHandle();
+  } catch { backupHandle = null; }
+  if (!backupHandle) return;
+
+  const granted = await backup.queryGranted(backupHandle, true);
+  backupNeedsPermission = !granted;
+  setBackupStatus(granted ? "linked" : "needs-permission");
+  updateBackupUi();
+
+  // If this browser's storage is empty but the file has trips, offer a restore.
+  if (!trips || trips.length === 0) {
+    try {
+      if (await backup.queryGranted(backupHandle, false)) {
+        const data = backup.parse(await backup.readHandle(backupHandle));
+        if (data.trips && data.trips.length) showRestoreBanner(data);
+      }
+    } catch { /* ignore */ }
+  }
+}
+
 async function init() {
   [locations, apiKey] = await Promise.all([getLocations(), getApiKey()]);
   apiKeyInput.value = apiKey;
@@ -1965,9 +2190,15 @@ async function init() {
       locations = changes.locations.newValue || [];
       renderLibrary();
     }
+    // Mirror any data change (from this page, the overlay, or the popup) into
+    // the linked backup file.
+    if (changes.trips || changes.activeTripId || changes.locations) {
+      scheduleBackupWrite();
+    }
   });
 
   await reloadTrips();
+  await initBackup();
 
   // The overlay's "Detailed view" button opens planner.html?view=detail.
   if (new URLSearchParams(location.search).get("view") === "detail") {

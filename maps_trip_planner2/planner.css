@@ -500,6 +500,27 @@ main {
   background-color: transparent;
 }
 
+/* ---- Data & Backup ---- */
+.backup-status {
+  font-size: 12px; color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container); border-radius: 8px;
+  padding: 8px 10px; margin: 8px 0;
+}
+.backup-status.linked { color: var(--md-sys-color-on-surface); }
+.backup-status.warn {
+  color: var(--md-sys-color-error, #b3261e);
+  background: var(--md-sys-color-error-container, #fbe3e3);
+}
+.backup-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.backup-actions .btn { height: 34px; padding: 0 14px; font-size: 12px; }
+.restore-banner {
+  margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+  background: var(--md-sys-color-primary-container, #dbe6ff);
+  color: var(--md-sys-color-on-primary-container, #1d4ed8);
+  font-size: 12.5px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+}
+.restore-banner .btn { height: 30px; padding: 0 12px; font-size: 12px; }
+
 /* ---- Redesigned stop rows: full-width title, kebab actions, rearrange ---- */
 /* Stack the main row and the expanded details vertically (was flex-wrap). */
 .stop-row { position: relative; flex-direction: column; align-items: stretch; gap: 0; }
