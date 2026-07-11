@@ -34,8 +34,21 @@
   const collapsedGroups = new Set(); // list names collapsed within the library
   const expandedStops = new Set();
   let detailedStopsView = false;
+  let reorderMode = false; // "Rearrange" toggle: drag/up-down instead of kebab actions
 
   const norm = (s) => (s || "").trim().toLowerCase();
+
+  // Format a 24h "HH:MM" (from <input type=time>) as "8:00 AM" / "12:30 PM".
+  function fmt12h(t) {
+    if (!t) return "";
+    const m = String(t).match(/^(\d{1,2}):(\d{2})/);
+    if (!m) return String(t);
+    let h = parseInt(m[1], 10);
+    const min = m[2];
+    const ap = h >= 12 ? "PM" : "AM";
+    h = h % 12; if (h === 0) h = 12;
+    return h + ":" + min + " " + ap; // narrow no-break space before AM/PM
+  }
   const activeTrip = () => trips.find((t) => t.id === activeId) || null;
   const scrapedMatch = (name) => locations.find((p) => norm(p.name) === norm(name)) || null;
 
@@ -321,6 +334,38 @@
       z-index: 2;
       box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
+
+    /* ---- Redesigned stop rows: full-width title, kebab actions, rearrange ---- */
+    .stop { position: relative; flex-direction: column; align-items: stretch; }
+    .stop-main { display: flex; align-items: flex-start; gap: 8px; width: 100%; }
+    /* Title claims the full width and wraps instead of truncating. */
+    .stop .name { white-space: normal; overflow: visible; text-overflow: clip; line-height: 1.3; }
+    .stop .idx { margin-top: 1px; }
+
+    /* Kebab (⋯) actions menu — reading mode only, so icons never squeeze the title */
+    .stop .rowbtn.kebab { margin-left: auto; }
+    .stop-menu {
+      position: absolute; right: 6px; top: 32px; z-index: 30;
+      background: #fff; border: 1px solid rgba(0,0,0,0.14); border-radius: 10px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.18); padding: 4px; min-width: 156px;
+      display: none; flex-direction: column;
+    }
+    .stop-menu.open { display: flex; }
+    .stop-menu button {
+      display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+      background: none; border: none; cursor: pointer; padding: 8px; border-radius: 6px;
+      font-size: 12px; color: #1f1f1f; font-family: 'Outfit', sans-serif; font-weight: 500;
+    }
+    .stop-menu button:hover { background: rgba(11,87,208,0.06); }
+    .stop-menu button.danger { color: #b3261e; }
+    .stop-menu button.danger:hover { background: rgba(179,38,30,0.08); }
+    .stop-menu svg { flex-shrink: 0; }
+
+    /* Rearrange mode: drag handle + up/down, no kebab */
+    .drag-handle { display: none; align-items: center; margin-right: 2px; cursor: grab; }
+    .stop.reordering .drag-handle { display: flex; }
+    .reorder-btns { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; align-self: center; }
+    .triplist.reordering .stop-leg-connector { display: none; }
   `;
 
   const host = document.createElement("div");
@@ -393,13 +438,22 @@
 
           <div style="display: flex; align-items: center; justify-content: space-between; margin: 6px 0 4px;">
             <div class="section-title" style="margin-bottom: 0;">Stops</div>
-            <label class="m3-switch" title="Toggle detailed stops view">
-              Detailed View
-              <input type="checkbox" class="toggle-detailed-stops" />
-              <span class="m3-switch-track">
-                <span class="m3-switch-thumb"></span>
-              </span>
-            </label>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <label class="m3-switch" title="Toggle detailed stops view">
+                Detailed
+                <input type="checkbox" class="toggle-detailed-stops" />
+                <span class="m3-switch-track">
+                  <span class="m3-switch-thumb"></span>
+                </span>
+              </label>
+              <label class="m3-switch" title="Reorder stops by dragging the handle or using the arrows">
+                Rearrange
+                <input type="checkbox" class="toggle-reorder-stops" />
+                <span class="m3-switch-track">
+                  <span class="m3-switch-thumb"></span>
+                </span>
+              </label>
+            </div>
           </div>
           <div class="list triplist"></div>
           <div class="actions" style="margin-top:8px;">
@@ -725,10 +779,28 @@
     }
   }
 
+  // Close any open kebab menu in the stops list.
+  function closeStopMenus() {
+    shadow.querySelectorAll(".stop-menu.open").forEach((m) => m.classList.remove("open"));
+  }
+
+  // Navigate the Maps tab to this stop's location (kebab "Show on map").
+  function openStopLocation(stop) {
+    const query = stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
+    let url;
+    if (stop.lat != null && stop.lng != null && stop.lat !== "" && stop.lng !== "") {
+      url = `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${stop.lat},${stop.lng},16z`;
+    } else {
+      url = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
+    }
+    window.location.assign(url);
+  }
+
   // ---- Stops of the active trip ------------------------------------------
   function renderStops() {
     const t = activeTrip();
     tripEl.innerHTML = "";
+    tripEl.classList.toggle("reordering", reorderMode);
     routeBtn.disabled = !t || t.stops.length < 2;
     if (!t) {
       tripEl.innerHTML = '<div class="hint">Create or pick a trip to add stops.</div>';
@@ -754,41 +826,42 @@
       }
       const row = document.createElement("div");
       row.className = "stop";
-      row.setAttribute("draggable", "true");
+      if (reorderMode) row.classList.add("reordering");
 
-      row.addEventListener("dragstart", (e) => {
-        e.dataTransfer.setData("text/plain", String(i));
-        row.classList.add("dragging");
-      });
-      row.addEventListener("dragend", () => {
-        row.classList.remove("dragging");
-      });
-      row.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        row.classList.add("dragover");
-      });
-      row.addEventListener("dragleave", () => {
-        row.classList.remove("dragover");
-      });
-      row.addEventListener("drop", async (e) => {
-        e.preventDefault();
-        row.classList.remove("dragover");
-        const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
-        const toIndex = i;
-        if (fromIndex !== toIndex && !isNaN(fromIndex)) {
-          const moved = t.stops.splice(fromIndex, 1)[0];
-          t.stops.splice(toIndex, 0, moved);
-          await persistTrips();
-          renderStops();
-        }
-      });
+      // Dragging is only enabled in Rearrange mode, so normal reading/clicking
+      // (expand, text selection) isn't hijacked by the drag surface.
+      if (reorderMode) {
+        row.setAttribute("draggable", "true");
+        row.addEventListener("dragstart", (e) => {
+          e.dataTransfer.setData("text/plain", String(i));
+          row.classList.add("dragging");
+        });
+        row.addEventListener("dragend", () => {
+          row.classList.remove("dragging");
+        });
+        row.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          row.classList.add("dragover");
+        });
+        row.addEventListener("dragleave", () => {
+          row.classList.remove("dragover");
+        });
+        row.addEventListener("drop", async (e) => {
+          e.preventDefault();
+          row.classList.remove("dragover");
+          const fromIndex = parseInt(e.dataTransfer.getData("text/plain"), 10);
+          const toIndex = i;
+          if (fromIndex !== toIndex && !isNaN(fromIndex)) {
+            const moved = t.stops.splice(fromIndex, 1)[0];
+            t.stops.splice(toIndex, 0, moved);
+            await persistTrips();
+            renderStops();
+          }
+        });
+      }
 
       const handle = document.createElement("div");
       handle.className = "drag-handle";
-      handle.style.display = "flex";
-      handle.style.alignItems = "center";
-      handle.style.marginRight = "4px";
-      handle.style.cursor = "grab";
       handle.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:#747775;"><circle cx="9" cy="5" r="1.5"></circle><circle cx="9" cy="12" r="1.5"></circle><circle cx="9" cy="19" r="1.5"></circle><circle cx="15" cy="5" r="1.5"></circle><circle cx="15" cy="12" r="1.5"></circle><circle cx="15" cy="19" r="1.5"></circle></svg>`;
 
       const idx = document.createElement("div");
@@ -804,10 +877,10 @@
       
       const agenda = stop.agenda || [];
       let agendaSummaryHtml = "";
-      if (detailedStopsView && !expandedStops.has(i) && agenda.length > 0) {
+      if (detailedStopsView && !reorderMode && !expandedStops.has(i) && agenda.length > 0) {
         agendaSummaryHtml += `<div class="compact-agenda-summary" style="display: flex; flex-direction: column; gap: 3px; margin-top: 4px; border-left: 2px solid #0b57d0; padding-left: 6px; font-size: 10px;">`;
         agenda.forEach(item => {
-          const time = item.startTime ? `<span style="color:#0b57d0; font-weight:600;">${escapeHtml(item.startTime)}</span>` : "";
+          const time = item.startTime ? `<span style="color:#0b57d0; font-weight:600;">${escapeHtml(fmt12h(item.startTime))}</span>` : "";
           const loc = item.location && item.location.name ? `@ ${item.location.name}` : "";
           agendaSummaryHtml += `
             <div style="color: #444746; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.25;">
@@ -824,9 +897,10 @@
           ? `<div class="stop-sub">${escapeHtml([sched, stop.notes].filter(Boolean).join(" · "))}</div>`
           : "") +
         agendaSummaryHtml;
-      info.style.cursor = "pointer";
-      info.title = "Click to expand/collapse details";
+      info.style.cursor = reorderMode ? "default" : "pointer";
+      info.title = reorderMode ? "" : "Click to expand/collapse details";
       info.addEventListener("click", () => {
+        if (reorderMode) return; // reading actions are paused while rearranging
         if (expandedStops.has(i)) {
           expandedStops.delete(i);
         } else {
@@ -835,56 +909,58 @@
         renderStops();
       });
 
+      // --- Rearrange controls (up/down) — shown only in Rearrange mode ---
       const up = document.createElement("button");
       up.className = "rowbtn";
       up.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"></line><polyline points="5 12 12 5 19 12"></polyline></svg>`;
       up.disabled = i === 0;
-      up.addEventListener("click", () => moveStop(i, -1));
+      up.title = "Move up";
+      up.addEventListener("click", (e) => { e.stopPropagation(); moveStop(i, -1); });
       const down = document.createElement("button");
       down.className = "rowbtn";
       down.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg>`;
       down.disabled = i === t.stops.length - 1;
-      down.addEventListener("click", () => moveStop(i, 1));
-      const edit = document.createElement("button");
-      edit.className = "rowbtn";
-      edit.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-      edit.title = "Edit stop";
-      edit.addEventListener("click", () => { editingStop = i; renderStops(); });
+      down.title = "Move down";
+      down.addEventListener("click", (e) => { e.stopPropagation(); moveStop(i, 1); });
+      const reorderBtns = document.createElement("div");
+      reorderBtns.className = "reorder-btns";
+      reorderBtns.append(up, down);
 
-      const locBtn = document.createElement("button");
-      locBtn.className = "rowbtn";
-      locBtn.title = "map-location stop";
-      locBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" height="16px" viewBox="0 -960 960 960" width="16px" fill="#1f1f1f"><path d="M536.5-503.5Q560-527 560-560t-23.5-56.5Q513-640 480-640t-56.5 23.5Q400-593 400-560t23.5 56.5Q447-480 480-480t56.5-23.5ZM480-186q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Zm0-480Z"></path></svg>`;
-      locBtn.addEventListener("click", () => {
-        let url;
-        if (stop.lat != null && stop.lng != null && stop.lat !== "" && stop.lng !== "") {
-          const query = stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
-          url = `https://www.google.com/maps/search/${encodeURIComponent(query)}/@${stop.lat},${stop.lng},16z`;
-        } else {
-          const query = stop.addressHint ? `${stop.name}, ${stop.addressHint}` : stop.name;
-          url = `https://www.google.com/maps/search/${encodeURIComponent(query)}`;
-        }
-        window.location.assign(url);
+      // --- Kebab (⋯) actions menu — shown only in reading mode ---
+      // Keeps map/edit/remove out of the title row so the name gets full width.
+      const kebab = document.createElement("button");
+      kebab.className = "rowbtn kebab";
+      kebab.title = "Stop actions";
+      kebab.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="12" cy="5" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="12" cy="19" r="1.7"></circle></svg>`;
+      const menu = document.createElement("div");
+      menu.className = "stop-menu";
+      menu.innerHTML =
+        `<button class="menu-locate"><svg xmlns="http://www.w3.org/2000/svg" height="16" viewBox="0 -960 960 960" width="16" fill="currentColor"><path d="M480-480q33 0 56.5-23.5T560-560q0-33-23.5-56.5T480-640q-33 0-56.5 23.5T400-560q0 33 23.5 56.5T480-480Zm0 294q122-112 181-203.5T720-552q0-109-69.5-178.5T480-800q-101 0-170.5 69.5T240-552q0 71 59 162.5T480-186Zm0 106Q319-217 239.5-334.5T160-552q0-150 96.5-239T480-880q127 0 223.5 89T800-552q0 100-79.5 217.5T480-80Z"></path></svg> Show on map</button>` +
+        `<button class="menu-edit"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 1 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg> Edit stop</button>` +
+        `<button class="menu-remove danger"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg> Remove stop</button>`;
+      kebab.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains("open");
+        closeStopMenus();
+        if (!isOpen) menu.classList.add("open");
       });
+      menu.querySelector(".menu-locate").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); openStopLocation(stop); });
+      menu.querySelector(".menu-edit").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); editingStop = i; renderStops(); });
+      menu.querySelector(".menu-remove").addEventListener("click", (e) => { e.stopPropagation(); closeStopMenus(); removeStop(i); });
 
-      const rm = document.createElement("button");
-      rm.className = "rowbtn";
-      rm.innerHTML = `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
-      rm.addEventListener("click", () => removeStop(i));
- 
       const stopMain = document.createElement("div");
-      stopMain.style.display = "flex";
-      stopMain.style.alignItems = "center";
-      stopMain.style.width = "100%";
-      stopMain.style.gap = "8px";
-      stopMain.append(handle, idx, info, up, down, locBtn, edit, rm);
-      row.style.flexDirection = "column";
-      row.style.alignItems = "flex-start";
-      row.style.gap = "0";
-      row.append(stopMain);
+      stopMain.className = "stop-main";
+      if (reorderMode) {
+        stopMain.append(handle, idx, info, reorderBtns);
+      } else {
+        stopMain.append(idx, info, kebab);
+      }
+      row.append(stopMain, menu);
       tripEl.appendChild(row);
 
-      if (expandedStops.has(i)) {
+      // Keep rows compact while rearranging — expanded agenda editors would
+      // make the list hard to drag/scan. They re-open when Rearrange is off.
+      if (expandedStops.has(i) && !reorderMode) {
         row.classList.add("expanded");
         
         const expandedDiv = document.createElement("div");
@@ -918,7 +994,7 @@
         } else {
           html += `<div class="agenda-items" style="display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px;">`;
           agenda.forEach((item, itemIdx) => {
-            const timeText = [item.startTime, item.endTime].filter(Boolean).join(" - ");
+            const timeText = [item.startTime, item.endTime].filter(Boolean).map(fmt12h).join(" – ");
             const locText = item.location && item.location.name ? `@ ${item.location.name}` : "";
             html += `
               <div class="agenda-item-row" style="display: flex; align-items: flex-start; justify-content: space-between; background: #ffffff; border: 1px solid rgba(0,0,0,0.06); border-radius: 6px; padding: 4px 6px; gap: 6px;">
@@ -1543,6 +1619,15 @@
     detailedStopsView = e.target.checked;
     renderStops();
   });
+
+  $(".toggle-reorder-stops").addEventListener("change", (e) => {
+    reorderMode = e.target.checked;
+    if (reorderMode) closeStopMenus();
+    renderStops();
+  });
+
+  // Click anywhere else in the panel closes an open stop kebab menu.
+  shadow.addEventListener("click", () => closeStopMenus());
 
   prefsToggle.addEventListener("click", () => {
     prefsCollapsed = !prefsCollapsed;
