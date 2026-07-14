@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Trip Planner</title>
+  <link rel="stylesheet" href="planner.css" />
+</head>
+<body>
+  <header>
+    <h1>Trip Planner</h1>
+    <button id="settings-toggle" class="link-btn">API key settings</button>
+  </header>
+
+  <section id="settings-panel" class="settings hidden">
+    <label for="api-key-input">Google Maps API key (optional)</label>
+    <input type="text" id="api-key-input" placeholder="Paste an API key to unlock the embedded map + distances" />
+    <button id="save-key-btn">Save</button>
+    <p class="hint">
+      Needs the <strong>Maps Embed API</strong> and <strong>Directions API</strong> enabled, and should be
+      restricted to your extension in Google Cloud Console. Without a key, you can still build a route and
+      open it directly in Google Maps.
+    </p>
+  </section>
+
+  <main>
+    <section class="panel" id="library-panel">
+      <h2 id="library-toggle" class="toggle"><span class="caret">▾</span> Saved places</h2>
+      <input type="search" id="search-input" placeholder="Search saved places…" />
+      <div id="library-list" class="scroll-list"></div>
+    </section>
+
+    <section class="panel" id="trip-panel">
+      <h2>Trip</h2>
+      <div class="trip-bar">
+        <select id="trip-select"></select>
+        <button id="new-trip-btn" class="row-btn" title="New trip">＋ New</button>
+        <button id="edit-trip-btn" class="row-btn" title="Edit trip details">✎</button>
+        <button id="delete-trip-btn" class="row-btn" title="Delete trip">🗑</button>
+      </div>
+
+      <div id="trip-form" class="trip-form hidden">
+        <input type="text" id="tf-title" placeholder="Trip title" />
+        <input type="text" id="tf-summary" placeholder="Summary (optional)" />
+        <div class="tf-dates">
+          <label>Start <input type="date" id="tf-start" /></label>
+          <label>End <input type="date" id="tf-end" /></label>
+        </div>
+        <div class="trip-actions">
+          <button id="tf-cancel">Cancel</button>
+          <button id="tf-save" class="primary">Create trip</button>
+        </div>
+      </div>
+
+      <div id="trip-meta" class="trip-meta hidden"></div>
+
+      <h2 class="stops-heading">Stops</h2>
+      <div id="trip-list" class="scroll-list"></div>
+      <div class="trip-actions">
+        <button id="clear-trip-btn">Clear stops</button>
+        <button id="build-route-btn" class="primary">Build route</button>
+      </div>
+      <button id="detail-view-btn" class="wide-btn">Detailed view</button>
+    </section>
+
+    <section class="panel" id="route-panel">
+      <h2>Route</h2>
+      <div id="route-empty" class="hint">Add at least two stops, then click "Build route".</div>
+      <a id="open-in-maps-link" class="hidden primary-link" target="_blank" rel="noopener">Open route in Google Maps</a>
+      <iframe id="route-embed" class="hidden" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <div id="route-legs"></div>
+      <div id="itinerary" class="hidden"></div>
+    </section>
+  </main>
+
+  <script type="module" src="planner.js"></script>
+</body>
+</html>
